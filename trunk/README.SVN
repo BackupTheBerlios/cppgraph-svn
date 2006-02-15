@@ -1,7 +1,7 @@
 Initial Initialisation
 ----------------------
  
-If you checked out this directory with cvs, then you will need to execute:
+If you checked out this directory with svn, then you will need to execute:
 
 ./autogen.sh
 
