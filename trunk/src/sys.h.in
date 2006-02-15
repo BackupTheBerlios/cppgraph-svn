@@ -1,0 +1,35 @@
+// cppgraph -- C++ call graph analyzer
+// @configure_input@
+// This file contains operating system header workarounds and application
+// wide macro definitions related to third party libraries and/or compilation
+// in general.
+//
+// Copyright (C) 2006, by Timmy <timmy1992@gmail.com>
+//
+// This file may be distributed under the terms of the Q Public License
+// version 1.0 as appearing in the file LICENSE.QPL included in the
+// packaging of this file.
+
+#ifndef SYS_H
+#define SYS_H
+
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef CWDEBUG
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <libcwd/sys.h>
+#endif
+
+// Compilers and preprocessor used.  Put here to cause a recompile when changed.
+// CC    : @CC_FINGER_PRINT@
+// CXX   : @CXX_FINGER_PRINT@
+// CXXCPP: @CXXCPP_FINGER_PRINT@
+//
+// Also cause a full recompile when the definition of CWDEBUG is changed.
+// CWDEBUG: @USE_LIBCWD@
+
+#endif // SYS_H

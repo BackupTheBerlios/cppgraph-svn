@@ -1,0 +1,10 @@
+Initial Initialisation
+----------------------
+ 
+If you checked out this directory with cvs, then you will need to execute:
+
+./autogen.sh
+
+You need to have http://cwautomacros.berlios.de/ installed for that.
+
+After that please read INSTALL.
