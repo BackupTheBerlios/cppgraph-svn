@@ -36,16 +36,16 @@
 #include "Class.h"
 #include "CGDFile.h"
 #include "debug.h"
+#include "generate_project_graph.h"
+#include "Graph.h"
 
 void process_input_line(char const* line, CGDFiles::iterator cgd_file, int line_nr, std::string const& curdir);
-void generate_graph(int verbose);
 
 int const exit_code_success = 0;
 int const error_parent_dir = 1;		// --subdir contains ".."
 int const error_unknown_option = 2;	// Unknown command line option.
 int const error_no_input = 3;		// No input files found.
-int const error_chdir = 4;		// Couldn't change current working directory.
-int const error_runtime_exception = 5;	// Program caught runtime-error exception.
+int const error_runtime_exception = 4;	// Program caught runtime-error exception.
 
 struct find_header : public std::unary_function<FileName, void> {
   char const* M_header;
@@ -186,26 +186,14 @@ int main(int argc, char* const argv[])
   if (print_version || print_usage || exit_code != 0)
     return exit_code;
 
-  // Try to change directory.
-  if (builddir != "." && chdir(builddir.c_str()) == -1)
-  {
-    std::cerr << program_name << ": " << builddir << ": " << strerror(errno) << std::endl;
-    return error_chdir;
-  }
-
   try
   {
     //-----------------------------------------------------------------------------------------------
-    // Get current working directory.
-    std::string cwd = realpath(".");
     Dout(dc::subdirs, "builddir is \"" << builddir << "\".");
-    Dout(dc::subdirs, "Current working directory is \"" << cwd << "\".");
-    if (verbose)
-      std::cout << "Current working directory is \"" << cwd << "\"." << std::endl;
 
     //-----------------------------------------------------------------------------------------------
     // Get subdirectories to search for .cgd files.
-    initialize_subdirs(cwd, cmdline_subdirs);
+    initialize_subdirs(builddir, cmdline_subdirs);
     if (verbose)
     {
       std::cout << "Searching the following subdirectories:" << std::endl;
@@ -450,40 +438,136 @@ int main(int argc, char* const argv[])
       std::cout << "Analyzing function declarations... " << std::flush;
     for (Functions::iterator iter = functions.begin(); iter != functions.end(); ++iter)
     {
-      FunctionDecl& decl(const_cast<Function&>(*iter).decl());
-      // Construct a uniq key for the class of this function, if any.
-      std::string classname;
-      bool first = true;
-      std::vector<ClassDecl>::iterator cd_iter = decl.classes.begin();
-      bool last = (cd_iter == decl.classes.end());
-      bool is_class = !last || decl.has_function_qualifiers();
-      for (std::vector<std::string>::iterator cn_iter = decl.class_or_namespaces.begin();
-	   cn_iter != decl.class_or_namespaces.end(); ++cn_iter)
+      if (iter->name()[0] == '(')	// Skip 'special' functions, they don't have a declaration.
       {
-	if (!first)
-	  classname += "::";
-	else
-	  first = false;
-	classname += *cn_iter;
-	if (!is_class)
-	  is_class = types.find(classname) != types.end();
+        // Associate them with the root namespace.
+        Class const a_class("");
+	const_cast<Function&>(*iter).set_class(a_class.get_iter());
+        continue;
       }
+      FunctionDecl& decl(const_cast<Function&>(*iter).decl());
+      Dout(dc::decl, "Analyzing function " << decl);
+      Debug(libcw_do.inc_indent(2));
+      // Construct a uniq key for the class of this function, if any.
+      std::string scopename;	// Namespace and class scope thus far.
+      bool is_class = false;
+      std::vector<ClassDecl>::iterator cd_iter = decl.classes.begin();
+      std::vector<std::string>::iterator cn_iter = decl.class_or_namespaces.begin();
+      bool first = true;
+      bool last = (cn_iter == decl.class_or_namespaces.end());
       while (!last)
       {
-	std::vector<ClassDecl>::iterator current = cd_iter;
-	last = (++cd_iter == decl.classes.end());
 	if (!first)
-	  classname += "::";
+	  scopename += "::";
 	else
 	  first = false;
-	classname += current->name();
-	if (current->has_template_argument_list())
-	  classname += "<>";
+	scopename += *cn_iter;
+	// Advance iterator.
+	++cn_iter;
+        last = cn_iter == decl.class_or_namespaces.end();
+#ifdef CWDEBUG
+	Dout(dc::decl, "scopename set to \"" << scopename << "\" (is_class == " << (is_class ? "true" : "false") << ")");
+	if (last)
+	  Dout(dc::decl, "This is the last scopename of decl.class_or_namespaces");
+#endif
+	Class const a_class(scopename);
+	if (!is_class && a_class.is_class())
+	{
+	  is_class = true;
+	  Dout(dc::decl, "Setting is_class, because it was detected before");
+	}
+	if (is_class && !a_class.is_class())
+	{
+	  Dout(dc::decl, "Calling set_class() for scopename \"" << a_class.base_name() << "\"");
+	  const_cast<Class&>(*a_class.get_iter()).set_class();
+	}
+	if (!is_class)
+	{
+	  is_class =
+	      (last && cd_iter == decl.classes.end() &&
+	          (decl.has_function_qualifiers() ||
+		   decl.is_constructor() ||
+		   decl.is_destructor() ||
+		   decl.is_class_operator())) ||
+	      (types.find(scopename) != types.end());
+	  if (is_class)
+	  {
+#ifdef CWDEBUG
+	    if (DEBUGCHANNELS::dc::decl.is_on())
+	    {
+	      std::string reason("Setting is_class, because ");
+	      do	// So we can use break;
+	      {
+		if (last && cd_iter == decl.classes.end())
+		{
+		  if (decl.has_function_qualifiers())
+		  {
+		    reason += "decl.has_function_qualifiers() is true";
+		    break;
+		  }
+		  else if (decl.is_constructor())
+		  {
+		    reason += "decl.is_constructor() is true";
+		    break;
+		  }
+		  else if (decl.is_destructor())
+		  {
+		    reason += "decl.is_destructor() is true";
+		    break;
+		  }
+		  else if (decl.is_class_operator())
+		  {
+		    reason += "decl.is_class_operator() is true";
+		    break;
+		  }
+		}
+		reason += scopename + " is part of 'types'";
+	      }
+	      while(0);
+	      Dout(dc::decl, reason);
+	    }
+	    Dout(dc::decl, "Calling set_class() for scopename \"" << a_class.base_name() << "\"");
+#endif
+	    const_cast<Class&>(*a_class.get_iter()).set_class();
+	  }
+	}
+	// Is this the very last?
+        if (last && cd_iter == decl.classes.end())
+	  const_cast<Function&>(*iter).set_class(a_class.get_iter());
       }
-      Class const a_class(classname);
-      if (is_class || decl.is_constructor() || decl.is_destructor())
+      last = (cd_iter == decl.classes.end());
+      is_class = true;
+      while (!last)
+      {
+	if (!first)
+	  scopename += "::";
+	else
+	  first = false;
+	scopename += cd_iter->name();
+	if (cd_iter->has_template_argument_list())
+	  scopename += "<>";
+	last = (++cd_iter == decl.classes.end());
+#ifdef CWDEBUG
+	Dout(dc::decl, "scopename set to \"" << scopename << "\" (is_class == " << (is_class ? "true" : "false") << ")");
+	if (last)
+	  Dout(dc::decl, "This is the last scopename of decl.classes");
+#endif
+	Class const a_class(scopename);
+#ifdef CWDEBUG
+        if (!a_class.is_class())
+	  Dout(dc::decl, "Calling set_class() for scopename \"" << a_class.base_name() << "\"");
+#endif
 	const_cast<Class&>(*a_class.get_iter()).set_class();
-      const_cast<Function&>(*iter).set_class(a_class.get_iter());
+        if (last)
+	  const_cast<Function&>(*iter).set_class(a_class.get_iter());
+      }
+      if (first)
+      {
+        // scopename is empty.
+        Class const a_class(scopename);
+	const_cast<Function&>(*iter).set_class(a_class.get_iter());
+      }
+      Debug(libcw_do.dec_indent(2));
     }
     size_t classes_size;
     do
@@ -491,13 +575,30 @@ int main(int argc, char* const argv[])
       classes_size = 0;
       for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
       {
-        ++classes_size;
+	++classes_size;
 	const_cast<Class&>(*iter).set_parent();
       }
-      // set_parent() might have created namespaces that weren't in classes before,
-      // so that the previous loop might have missed some.
     }
-    while (classes.size() > classes_size);
+    while(classes.size() > classes_size);	// It could be that set_parent() created
+    						// namespaces that weren't in classes before.
+    // Perhaps we saw a type later than the first time it appeared as scope, check again.
+    for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+    {
+      if (!iter->is_class() && types.find(iter->base_name()) != types.end())
+      {
+	Dout(dc::decl, "Calling set_class() for scopename \"" << iter->base_name() << "\", because it was seen as type.");
+	const_cast<Class&>(*iter).set_class();
+      }
+    }
+    // It might happen that some parent class was marked as class, but we didn't notice that for the child.
+    for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+    {
+      if (!iter->is_class() && iter->parent_iter() != classes.end() && iter->parent_iter()->is_class())
+      {
+	Dout(dc::decl, "Calling set_class() for scopename \"" << iter->base_name() << "\", because parent is a class.");
+	const_cast<Class&>(*iter).set_class();
+      }
+    }
     if (verbose)
     {
       std::cout << "done." << std::endl;
@@ -693,9 +794,45 @@ int main(int argc, char* const argv[])
       const_cast<Function&>(*iter).set_project(iter->get_file().get_project().get_iter());
     }
     if (verbose)
-      std::cout << " done.\n";
+      std::cout << " done." << std::endl;
+
     //---------------------------------------------------------------------------------------------
-    generate_graph(verbose);
+    generate_project_graph(verbose);
+
+    //---------------------------------------------------------------------------------------------
+    if (verbose)
+      std::cout << "Trying to determine which classes are functors..." << std::flush;
+    for (std::set<Edge>::const_iterator iter = edges.begin(); iter != edges.end(); ++iter)
+    {
+      Edge const& edge(*iter);
+      Function const& caller(edge.get_caller());
+      if (!caller.decl().is_template())
+        continue;	// Not a functor.
+      Function const& callee(edge.get_callee());
+      Project const& caller_project(caller.get_project());
+      Project const& callee_project(callee.get_project());
+      size_t caller_project_index = caller_project.get_index();
+      size_t callee_project_index = callee_project.get_index();
+      if (caller_project_index == callee_project_index)
+        continue;	// We cannot determine if this is a functor.
+      if (!project_graph.is_connected(caller_project_index, callee_project_index))
+      {
+        // Must be an upstream call, and therefore a functor.
+	Class const& a_class(callee.get_class());
+	const_cast<Class&>(a_class).set_functor();
+	Dout(dc::notice, caller << " (" << caller_project_index << ") calls " << callee << " (" << callee_project_index << ')');
+      }
+    }
+    if (verbose)
+    {
+      std::cout << " done." << std::endl;
+      if (verbose > 1)
+      {
+	for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+	  if (iter->is_functor())
+	    std::cout << "  " << iter->base_name() << std::endl;
+      }
+    }
   }
   catch (clean_exit const& error)
   {

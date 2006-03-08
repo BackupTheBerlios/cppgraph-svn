@@ -18,10 +18,11 @@
 
 SubdirSet subdirs;
 
-void initialize_subdirs(std::string const& cwd, std::vector<std::string> const& cmdline_subdirs)
+void initialize_subdirs(std::string builddir, std::vector<std::string> const& cmdline_subdirs)
 {
-  subdirs.insert(cwd);
-  Dout(dc::subdirs, "Added: " << cwd);
+  builddir = realpath(builddir);
+  subdirs.insert(builddir);
+  Dout(dc::subdirs, "Added: " << builddir);
   for (std::vector<std::string>::const_iterator cmdline_subdir_iter = cmdline_subdirs.begin();
        cmdline_subdir_iter != cmdline_subdirs.end(); ++cmdline_subdir_iter)
   {

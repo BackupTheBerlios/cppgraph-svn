@@ -136,6 +136,46 @@ struct is_C_function_a {
   FunctionDecl& M_decl;
 };
 
+struct function_scope_a {
+  function_scope_a(FunctionDecl& decl) : M_decl(decl) { }
+  void operator()(char const*, char const*) const;
+  FunctionDecl& M_decl;
+};
+
+void function_scope_a::operator()(char const*, char const*) const
+{
+  std::string function_scope = M_decl.function_name;
+  function_scope += '(';
+  bool first = true;
+  for (std::vector<std::string>::const_iterator iter = M_decl.parameter_types.begin();
+       iter != M_decl.parameter_types.end(); ++iter)
+  {
+    if (first)
+      first = false;
+    else
+      function_scope += ", ";
+    function_scope += *iter;
+  }
+  function_scope += ')';
+  if (!M_decl.function_qualifiers.empty())
+  {
+    function_scope += ' ';
+    function_scope += M_decl.function_qualifiers;
+  }
+  if (!M_decl.exception_specification.empty())
+  {
+    function_scope += ' ';
+    function_scope += M_decl.exception_specification;
+  }
+  ClassDecl class_decl(function_scope);
+  class_decl.set_is_function();
+  M_decl.classes.push_back(class_decl);
+  M_decl.function_name.clear();
+  M_decl.parameter_types.clear();
+  M_decl.function_qualifiers.clear();
+  M_decl.exception_specification.clear();
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 // Grammars
 
@@ -193,6 +233,7 @@ public:
       rule_t type_specifier_seq;
       rule_t unqualified_id;
       rule_t decl_without_return_type;
+      rule_t decl_without_return_type_no_namespace;
       rule_t with_template_parameters;
       rule_t template_parameter_assignment;
       rule_t template_argument_literal;
@@ -280,11 +321,16 @@ public:
 		   *(   (namespace_name		[assign_a(self.M_last_match)]
 			    >> "::")		[push_back_a(self.M_function_decl.class_or_namespaces, self.M_last_match)]
 		    )
+		    >> decl_without_return_type_no_namespace
+	    ;
 
+	// The rest of a function declaration. Any preceding scope is a class, not a namespace.
+	decl_without_return_type_no_namespace
+	    =
 		// Optional class names.
-		    >> *(   (class_name
-			    >> "::")		[push_back_a(self.M_function_decl.classes, self.M_last_class)]
-			)	
+		   *(   (class_name
+			>> "::")		[push_back_a(self.M_function_decl.classes, self.M_last_class)]
+		    )	
 
 		// Function name; template parameters are not printed by g++, not even for template (member) functions.
 		    >> unqualified_id		[assign_a(self.M_function_decl.function_name)]
@@ -318,6 +364,12 @@ public:
 		    >> ')'
 		    >> !cv_qualifiers			[assign_a(self.M_function_decl.function_qualifiers)]
 		    >> !exception_specification		[assign_a(self.M_function_decl.exception_specification)]
+		    // If the function is followed by "::" then it wasn't the real function yet.
+		    >> !(
+			    // Erase parameter_types and continue parsing and recursively continue with parsing classes.
+		            str_p("::")			[function_scope_a(self.M_function_decl)]
+			    >> decl_without_return_type_no_namespace
+			)
             ;
 
         conversion_operator
@@ -387,7 +439,7 @@ public:
 	    |   ch_p('=')					[is_assignment_a(self.M_function_decl)]
 	    |   lexeme_d
 	        [
-		    (ch_p('*') | '/' | '%' | '^' | '!') >> !ch_p('=')
+		    (ch_p('*') | '/' | '%' | '^' | '!' | '~') >> !ch_p('=')
 		|   ch_p('-') >> !(ch_p('=') | '-' | ('>' >> !ch_p('*')))
 		|   ch_p('+') >> !(ch_p('=') | '+')
 		|   ch_p('<') >> !(ch_p('=') | ('<' >> !ch_p('=')))
@@ -397,7 +449,6 @@ public:
 		]
 	    |   "()"
 	    |   "[]"
-	    |   '~'
 	    |   ','
 	    |   ( keyword_p("new") | keyword_p("delete") ) >> !str_p("[]")
 	    ;
@@ -730,6 +781,7 @@ public:
 	BOOST_SPIRIT_DEBUG_RULE(type_specifier_seq);
 	BOOST_SPIRIT_DEBUG_RULE(unqualified_id);
 	BOOST_SPIRIT_DEBUG_RULE(decl_without_return_type);
+	BOOST_SPIRIT_DEBUG_RULE(decl_without_return_type_no_namespace);
 	BOOST_SPIRIT_DEBUG_RULE(with_template_parameters);
 	BOOST_SPIRIT_DEBUG_RULE(template_parameter_assignment);
 	BOOST_SPIRIT_DEBUG_RULE(template_argument_literal);
@@ -750,7 +802,8 @@ public:
 
 bool parse_function_declaration(std::string const& input, FunctionDecl& decl, std::set<std::string>& types)
 {
-  FUNCTIONDECLARATION grammar(decl, types);
+  std::set<std::string> decl_types;
+  FUNCTIONDECLARATION grammar(decl, decl_types);
   boost::spirit::parse_info<> info = boost::spirit::parse(input.c_str(), grammar, boost::spirit::space_p);
   if (info.full)
   {
@@ -766,6 +819,16 @@ bool parse_function_declaration(std::string const& input, FunctionDecl& decl, st
         decl.set_copy();
       if (decl.parameter_types.size() == 0)
         decl.set_default();
+    }
+    // Add found types to global set of types.
+    for (std::set<std::string>::iterator iter = decl_types.begin(); iter != decl_types.end(); ++iter)
+    {
+#ifndef CWDEBUG
+      types.insert(*iter);
+#else
+      if (types.insert(*iter).second)
+        Dout(dc::decl, "Adding type \"" << *iter << '"');
+#endif
     }
   }
   return info.full;

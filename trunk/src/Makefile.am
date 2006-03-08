@@ -11,7 +11,7 @@ CXXFLAGS = @CXXFLAGS@
 
 LIBS = @LIBS@
 cppgraph_SOURCES = \
-	generate_graph.cc \
+	generate_project_graph.cc \
 	Graph.cc \
 	Node.cc \
 	genfull.cc \

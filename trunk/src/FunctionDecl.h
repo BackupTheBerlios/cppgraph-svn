@@ -67,6 +67,7 @@ public:
   bool is_assignment(void) const { return M_is_assignment; }
   bool is_default(void) const { return M_is_default; }
   bool is_C_function(void) const { return M_is_C_function; }
+  bool is_class_operator(void) const;
 
   std::string self_const_reference(void) const;
 };

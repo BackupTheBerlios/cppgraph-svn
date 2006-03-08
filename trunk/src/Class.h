@@ -30,6 +30,7 @@ private:
   bool M_is_class;				// Otherwise, it could be a namespace too, actually.
   container_type::iterator M_parent;		// Parent class, or namespace.
   std::map<Projects::iterator, int> M_projects;	// Related projects and count.
+  bool M_is_functor;				// When used as functor at least once, between projects.
 
 public:
   Class(std::string const& base_name);
@@ -41,6 +42,8 @@ public:
   bool is_class(void) const { return M_is_class; }
   void set_class(void) { M_is_class = true; }
   void set_parent(void);
+  void set_functor(void) { M_is_functor = true; }
+  bool is_functor(void) const { return M_is_functor; }
   std::map<Projects::iterator, int> const& get_projects(void) const { return M_projects; }
   std::map<Projects::iterator, int>& get_projects(void) { return M_projects; }
   void add_project(Project const& project);

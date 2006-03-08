@@ -21,7 +21,10 @@ void initialize_directories(std::vector<std::string> const& cmdline_projectdirs)
   // Pre-mark directories as project directories.
   for (std::vector<std::string>::const_iterator iter = cmdline_projectdirs.begin();
        iter != cmdline_projectdirs.end(); ++iter)
+  {
+    Dout(dc::dirvec, "Adding directory \"" << *iter << "\", because it was passed as --projectdir.");
     directories.insert(Directory(*iter, true));
+  }
   for (FileNames::iterator iter = filenames.begin(); iter != filenames.end(); ++iter)
   {
     if (!iter->is_real_name())
@@ -37,6 +40,7 @@ void initialize_directories(std::vector<std::string> const& cmdline_projectdirs)
       if (slash == filename.end())
 	break;
       std::string path(filename.begin(), slash);
+      Dout(dc::dirvec, "Adding directory \"" << path << "\", because of filename \"" << filename << "\".");
       Directories::iterator iter = directories.insert(Directory(path)).first;
       assert(path == iter->str());
       const_cast<Directory&>(*iter).increment_count();

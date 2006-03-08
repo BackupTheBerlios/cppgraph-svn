@@ -40,6 +40,8 @@ namespace debug {
       channel_ct subdirs DDCN("SUBDIRS");	//!< This debug channel is used for debug output related to --subdir decoding.
       channel_ct dirtree DDCN("DIRTREE");	//!< This debug channel is used for debug output related to DirTree.
       channel_ct shortname DDCN("SHORTNAME");	//!< This debug channel is used for debug output related to ShortName.
+      channel_ct decl DDCN("DECL");		//!< This debug channel is used for debug output related to declaration analysis.
+      channel_ct dirvec DDCN("DIRVEC");		//!< This debug channel is used for debug output related to direcctories.
 
     } // namespace dc
   } // namespace DEBUGCHANNELS

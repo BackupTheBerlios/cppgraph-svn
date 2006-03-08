@@ -93,6 +93,8 @@ namespace debug {
       extern channel_ct subdirs;
       extern channel_ct dirtree;
       extern channel_ct shortname; 
+      extern channel_ct decl; 
+      extern channel_ct dirvec;
 #endif
 
     } // namespace dc

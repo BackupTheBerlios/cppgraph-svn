@@ -16,10 +16,14 @@
 
 Classes classes;
 
-Class::Class(std::string const& base_name) : M_KEY_base_name(base_name), M_is_class(false), M_parent(classes.end())
+Class::Class(std::string const& base_name) :
+    M_KEY_base_name(base_name), M_is_class(false), M_parent(classes.end()), M_is_functor(false)
 {
   M_iter = classes.insert(*this).first;
   const_cast<Class&>(*M_iter).M_iter = M_iter;
+  M_is_class = M_iter->M_is_class;
+  M_parent = M_iter->M_parent;
+  M_is_functor = M_iter->M_is_functor;
 }
 
 void Class::set_parent(void)

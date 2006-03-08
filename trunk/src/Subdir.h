@@ -37,6 +37,6 @@ struct SubdirLess : public std::binary_function<Subdir, Subdir, bool> {
 
 typedef std::set<Subdir, SubdirLess> SubdirSet;
 extern SubdirSet subdirs;
-void initialize_subdirs(std::string const& cwd, std::vector<std::string> const& cmdline_subdirs);
+void initialize_subdirs(std::string builddir, std::vector<std::string> const& cmdline_subdirs);
 
 #endif // SUBDIR_H

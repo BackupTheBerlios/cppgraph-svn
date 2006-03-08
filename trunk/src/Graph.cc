@@ -13,6 +13,9 @@
 #include <iostream>
 #include <stdexcept>
 #include "Graph.h"
+#include <boost/graph/depth_first_search.hpp>
+#include <boost/graph/visitors.hpp>
+#include <boost/graph/exception.hpp>
 
 void Graph::add_vertex(Node* node)
 {
@@ -20,6 +23,7 @@ void Graph::add_vertex(Node* node)
   {
     node->set_index(M_vertex_vec.size());
     M_vertex_vec.push_back(node);
+    M_distance_vec.push_back(-1);
   }
 }
 
@@ -41,17 +45,69 @@ void Graph::add_edge(Node* u, Node* v)
 void Graph::write_to(std::ostream& os)
 {
   os << "digraph G {\n";
-  os << "  size = \"12,12\";\n";
   os << "  rankdir = BT;\n";
   for (std::vector<Node*>::iterator vertex_iter = M_vertex_vec.begin(); vertex_iter != M_vertex_vec.end(); ++vertex_iter)
   {
-    os << "  \"" << (*vertex_iter)->node_name() << "\"\n";
+    os << "  " << (*vertex_iter)->get_index() <<
+        " [label=\"" << (*vertex_iter)->node_name() << "\"];\n";
   }
   for (std::set<std::pair<size_t, size_t> >::iterator edge_iter = M_edges.begin(); edge_iter != M_edges.end(); ++edge_iter)
   {
-    os << "  \"" << M_vertex_vec[edge_iter->first]->node_name() << "\" -> \"" <<
-        M_vertex_vec[edge_iter->second]->node_name() << "\";\n";
+    os << "  " << edge_iter->first << " -> " << edge_iter->second << ";\n";
   }
   os << "}\n";
+}
+
+struct test_dag_visitor : public boost::dfs_visitor<> {
+private:
+  Graph& M_graph;
+public:
+  test_dag_visitor(Graph& graph) : M_graph(graph) { }
+  template <typename Edge, typename Graph>
+    void back_edge(Edge const&, Graph&)
+    {
+      throw boost::not_a_dag();
+    }
+  template <typename Vertex, typename Graph>
+    void discover_vertex(Vertex const& u, Graph const&)
+    {
+      int& d(M_graph.distance_ref(u));
+      if (d == -1)
+        d = 0;
+    }
+  template <typename Edge, typename Graph>
+    void examine_edge(Edge const& e, Graph const&)
+    {
+      int& d1(M_graph.distance_ref(e.m_source));
+      int& d2(M_graph.distance_ref(e.m_target));
+      if (d2 < d1 + 1)
+        d2 = d1 + 1;
+    }
+};
+
+bool Graph::test_acyclic(void)
+{
+  CGDFiles::iterator some_cgd_file_iter = cgd_files.begin();
+  FileName const& filename(some_cgd_file_iter->source_file());
+  Project const& main_project(filename.get_project());
+
+  bool result = true;
+  try
+  {
+    boost::depth_first_search(M_g,
+	boost::visitor(test_dag_visitor(*this)).
+	root_vertex(main_project.get_index()));
+  }
+  catch (boost::not_a_dag const&)
+  {
+    result = false;
+  }
+  return result;
+}
+
+bool Graph::is_connected(size_t from, size_t to)
+{
+  assert(M_distance_vec[from] != -1);
+  return M_distance_vec[from] < M_distance_vec[to];
 }
 
