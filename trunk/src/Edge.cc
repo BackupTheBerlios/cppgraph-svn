@@ -11,14 +11,4 @@
 
 #include "sys.h"
 #include "Edge.h"
-#include "Function.h"
-#include "Edge.inl"
 
-Edges edges;
-
-Edge::Edge(Function const& caller, Function const& callee) :
-    M_KEY_caller(caller.get_iter()), M_KEY_callee(callee.get_iter())
-{
-  M_iter = edges.insert(*this).first;
-  const_cast<Edge&>(*M_iter).M_iter = M_iter;
-}

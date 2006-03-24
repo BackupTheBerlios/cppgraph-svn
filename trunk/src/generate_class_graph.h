@@ -1,7 +1,7 @@
 // cppgraph -- C++ call graph analyzer
 //
-//! @file generate_project_graph.h
-//! @brief This file contains the declaration of function generate_project_graph.
+//! @file generate_class_graph.h
+//! @brief This file contains the declaration of function generate_class_graph.
 //
 // Copyright (C) 2006, by Timmy <timmy1992@gmail.com>
 //
@@ -9,13 +9,13 @@
 // version 1.0 as appearing in the file LICENSE.QPL included in the
 // packaging of this file.
 
-#ifndef GENERATE_PROJECT_GRAPH_H
-#define GENERATE_PROJECT_GRAPH_H
+#ifndef GENERATE_CLASS_GRAPH_H
+#define GENERATE_CLASS_GRAPH_H
 
 #include "Graph.h"
 
-void generate_project_graph(int verbose);
+void generate_class_graph(int verbose);
 
-extern Graph project_graph;
+extern Graph class_graph;
 
-#endif // GENERATE_PROJECT_GRAPH_H
+#endif // GENERATE_CLASS_GRAPH_H

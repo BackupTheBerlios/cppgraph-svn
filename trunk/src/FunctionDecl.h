@@ -16,6 +16,7 @@
 #include <vector>
 #include "ClassDecl.h"
 #include <iostream>
+#include "serialization.h"
 
 struct FunctionDecl {
   std::string decl_specifier;
@@ -70,6 +71,29 @@ public:
   bool is_class_operator(void) const;
 
   std::string self_const_reference(void) const;
+
+private:
+  // Serialization.
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive& ar, unsigned int const UNUSED(version))
+  {
+    ar & BOOST_SERIALIZATION_NVP(decl_specifier);
+    ar & BOOST_SERIALIZATION_NVP(return_type);
+    ar & BOOST_SERIALIZATION_NVP(class_or_namespaces);
+    ar & BOOST_SERIALIZATION_NVP(classes);
+    ar & BOOST_SERIALIZATION_NVP(function_name);
+    ar & BOOST_SERIALIZATION_NVP(parameter_types);
+    ar & BOOST_SERIALIZATION_NVP(function_qualifiers);
+    ar & BOOST_SERIALIZATION_NVP(exception_specification);
+    ar & BOOST_SERIALIZATION_NVP(M_is_constructor);
+    ar & BOOST_SERIALIZATION_NVP(M_is_destructor);
+    ar & BOOST_SERIALIZATION_NVP(M_is_assignment);
+    ar & BOOST_SERIALIZATION_NVP(M_is_copy);
+    ar & BOOST_SERIALIZATION_NVP(M_is_default);
+    ar & BOOST_SERIALIZATION_NVP(M_is_template);
+    ar & BOOST_SERIALIZATION_NVP(M_is_C_function);
+  }
 };
 
 #endif // FUNCTIONDECL_H

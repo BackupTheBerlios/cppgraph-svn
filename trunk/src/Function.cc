@@ -12,23 +12,15 @@
 #include "sys.h"
 #include "Function.h"
 #include "Edge.h"
+#include "EdgeData.inl"		// For instantiation of Edge objects.
 #include "debug.h"
 
-Functions functions;
-
-Function::Function(std::string const& function_name, FileName const& file, CGDFiles::const_iterator cgd_file) :
-    M_KEY_function_name(function_name), M_KEY_decl_file(file.get_iter()), M_definition(true), M_cgd_file(cgd_file)
+Function::Function(std::string const& function_name, FileName const& filename,
+    CGDFile::container_type::const_iterator cgd_file) :
+    FunctionData<Functions, CGDFile, FileName, Project, Classes, FunctionDecl, Edges>(function_name, filename, cgd_file)
 {
-  M_iter = functions.insert(*this).first;
-  const_cast<Function&>(*M_iter).M_iter = M_iter;
+  add(container, *this);
   const_cast<Function&>(*M_iter).set_definition(cgd_file);
-}
-
-Function::Function(std::string const& function_name, FileName const& file) :
-    M_KEY_function_name(function_name), M_KEY_decl_file(file.get_iter()), M_definition(false)
-{
-  M_iter = functions.insert(*this).first;
-  const_cast<Function&>(*M_iter).M_iter = M_iter;
 }
 
 void Function::add_callee(Function const& callee)

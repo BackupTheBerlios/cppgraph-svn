@@ -16,57 +16,35 @@
 #include <vector>
 #include <string>
 #include <iosfwd>
+#include "DirTreeData.h"
 
-class DirTree {
+class DirTree : public DirTreeData<std::set<DirTree> > {
 public:
-  typedef std::set<DirTree> container_type;
-private:
-  container_type::iterator const M_KEY_parent;			// The parent directory.
-  std::string M_KEY_dirname;					// Part of the path, ie "foo/bar". Never empty.
-  int M_totalfiles;						// The number of files in this directory (recursively).
-  std::vector<container_type::iterator> M_path_rest;		// Possible branches.
-  bool M_has_include;						// M_KEY_long_name contains the subdirectory 'include'.
-  bool M_is_general;						// Marked as general installation path.
-  bool M_is_project;						// Marked as project directory;
-  bool M_is_system;						// Marked as system directory;
-  container_type::iterator M_iter;
-public:
-  DirTree(std::string const& dirname);
+  DirTree(std::string const& dirname) : DirTreeData<std::set<DirTree> >(dirname) { }
   DirTree(container_type::iterator parent, std::string const& dirname,
-      int totalfiles, bool general_prefix, bool is_project, bool is_system);
+      int totalfiles, bool general_prefix, bool is_project, bool is_system) :
+      DirTreeData<std::set<DirTree> >(parent, dirname, totalfiles, general_prefix, is_project, is_system)
+  {
+    add(container, *this);
+    Dout(dc::dirtree, "Added DirTree with parent \"" <<
+	((parent == container.end()) ? std::string("") : parent->str()) <<
+	"\", rest \"" << dirname << "\" and totalfiles " << totalfiles << ". M_has_include = " <<
+	(M_has_include ? "true" : "false") << ", M_is_general = " << (M_is_general ? "true" : "false") <<
+	", M_is_project = " << (M_is_project ? "true" : "false") <<
+	", M_is_system = " << (M_is_system ? "true" : "false"));
+    if (parent != container.end())
+      const_cast<DirTree&>(*parent).add_path(M_iter);
+  }
 
-  std::string const& dirname(void) const { return M_KEY_dirname; }
-  container_type::iterator parent(void) const { return M_KEY_parent; }
-  std::string str(void) const;
-  int totalfiles(void) const { return M_totalfiles; }
-  int nrfiles(void) const;
-  bool has_include(void) const;
-  bool is_general(void) const { return M_is_general; }
-  bool is_project(void) const { return M_is_project; }
-  bool is_system(void) const { return M_is_system; }
-  bool has_project(void) const;
-  std::vector<container_type::iterator> const& children(void) const { return M_path_rest; }
-  container_type::iterator get_iter(void) const { return M_iter; }
-
+public:
   void add_path(container_type::iterator path_rest) { M_path_rest.push_back(path_rest); }
   void erase(void);
   void erase_children(void);
-
-  static char const* seperator(void) { return "/"; }
-  bool process(void) const { return true; }
 };
 
-typedef DirTree::container_type DirTrees;
-
-extern DirTrees dirtrees;
 void initialize_dirtrees(
     std::vector<std::string> const& cmdline_prefixdirs,
     std::vector<std::string> const& cmdline_systemdirs);
-
-inline bool operator<(DirTree const& dirtree1, DirTree const& dirtree2)
-{
-  return dirtree1.str() < dirtree2.str();
-}
 
 extern std::ostream& operator<<(std::ostream& os, DirTree const& dirtree);
 

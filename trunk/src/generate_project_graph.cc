@@ -1,3 +1,14 @@
+// cppgraph -- C++ call graph analyzer
+//
+//! @file generate_project_graph.cc
+//! @brief This file implements generation of the project graph.
+//
+// Copyright (C) 2006, by Timmy <timmy1992@gmail.com>
+//
+// This file may be distributed under the terms of the Q Public License
+// version 1.0 as appearing in the file LICENSE.QPL included in the
+// packaging of this file.
+
 #include "sys.h"
 #include <iostream>
 #include <fstream>

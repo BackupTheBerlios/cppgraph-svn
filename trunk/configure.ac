@@ -10,6 +10,9 @@ define(TE_BUGREPORT, timmy1992@gmail.com)
 dnl Package name and version
 AC_INIT(TE_PACKAGE_NAME, TE_VERSION_MAJOR.TE_VERSION_MINOR.TE_VERSION_REVISION, TE_BUGREPORT)
 
+dnl Put resulting configuration defines in this header file.
+AC_CONFIG_HEADERS([config.h])
+
 dnl Put revision of configure.ac in configure script.
 AC_REVISION($Revision: 1.0 $)dnl
 
@@ -22,9 +25,6 @@ AM_INIT_AUTOMAKE
 
 dnl Include maintainer mode targets
 AM_MAINTAINER_MODE
-
-dnl Put resulting configuration defines in this header file.
-AM_CONFIG_HEADER(config.h)
 
 dnl Demand at least version 2.57 of autoconf.
 AC_PREREQ(2.57)
@@ -57,7 +57,7 @@ HAVE_DOT=YES
 fi
 
 # Find boost.
-CW_BOOST("no", "no", [])
+CW_BOOST("no", "no", [serialization])
 
 # Used in sys.h to force recompilation.
 CW_PROG_CXX_FINGER_PRINTS

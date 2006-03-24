@@ -1,7 +1,7 @@
 // cppgraph -- C++ call graph analyzer
 //
-//! @file FileName.cc
-//! @brief This file contains the implementation of class FileName.
+//! @file Edges.h
+//! @brief This file contains the declaration of Edges.
 //
 // Copyright (C) 2006, by Timmy <timmy1992@gmail.com>
 //
@@ -9,5 +9,12 @@
 // version 1.0 as appearing in the file LICENSE.QPL included in the
 // packaging of this file.
 
-#include "sys.h"
-#include "FileName.h"
+#ifndef EDGES_H
+#define EDGES_H
+
+#include <set>
+
+class Edge;
+typedef std::set<Edge> Edges;
+
+#endif // EDGES_H

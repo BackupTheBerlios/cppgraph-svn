@@ -15,9 +15,9 @@ CXXFLAGS = @CXXFLAGS@
 #dist-hook:
 
 distclean-local:
-	rm -rf $(srcdir)/autom4te.cache
+	rm -rf $(srcdir)/autom4te.cache *~
 
 MAINTAINERCLEANFILES = $(srcdir)/aclocal.m4 $(srcdir)/config.h.in $(srcdir)/configure $(srcdir)/Makefile.in \
 	$(srcdir)/install-sh $(srcdir)/missing $(srcdir)/mkinstalldirs $(srcdir)/config.guess $(srcdir)/config.sub \
-	$(srcdir)/ltmain.sh $(srcdir)/stamp-h.in $(srcdir)/ChangeLog troep*
+	$(srcdir)/ltmain.sh $(srcdir)/stamp-h.in $(srcdir)/ChangeLog $(srcdir)/depcomp troep*
 

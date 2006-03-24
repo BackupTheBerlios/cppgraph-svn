@@ -15,51 +15,64 @@
 #include <string>
 #include "ShortName.h"
 #include "debug.h"
+#include "serialization.h"
 
-template<typename Derived>
-  class LongName {
-  protected:
-    std::string M_KEY_long_name;		// The full name.
-    typename std::set<ShortName<Derived> >::iterator M_shortname;
+template<class Container>
+class LongName {
+public:
+  LongName(std::string const& long_name) : M_KEY_long_name(long_name) { }
 
-  public:
-    LongName(std::string const& long_name) : M_KEY_long_name(long_name) { }
+  // Accessors.
+  std::string const& long_name(void) const { return M_KEY_long_name; }
+  std::string const& short_name(void) const { return M_shortname->str(); }
 
-    // Accessors.
-    std::string const& long_name(void) const { return M_KEY_long_name; }
-    std::string const& short_name(void) const { return M_shortname->str(); }
+  template<typename Iterator>
+    static void init_short_name(Iterator longname_iter);
 
-    template<typename Iterator>
-      static void init_short_name(Iterator longname_iter);
+  void set_shortname(typename ShortName<Container>::container_type::iterator shortname_iter)
+      { M_shortname = shortname_iter; }
 
-    void set_shortname(typename std::set<ShortName<Derived> >::iterator shortname_iter)
-        { M_shortname = shortname_iter; }
+  static void generate_short_names(void);
 
-    static void generate_short_names(void);
+  friend bool operator<(LongName const& ln1, LongName const& ln2)
+      { return ln1.M_KEY_long_name < ln2.M_KEY_long_name; }
 
-    friend bool operator<(LongName const& ln1, LongName const& ln2)
-	{ return ln1.M_KEY_long_name < ln2.M_KEY_long_name; }
-  };
+protected:
+  std::string M_KEY_long_name;		// The full name.
+  typename ShortName<Container>::container_type::iterator M_shortname;
+
+private:
+  // Serialization.
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive& ar, unsigned int const UNUSED(version))
+  {
+    ar & BOOST_SERIALIZATION_NVP(M_KEY_long_name);
+    typedef ShortName<Container> shortname_type;
+    ar & SERIALIZATION_ITERATOR_NVP(shortname_type::container, M_shortname);
+  }
+};
 
 #include "ShortName.tcc"
 
-template<typename Derived>
+template<class Container>
   template<typename Iterator>
-    void LongName<Derived>::init_short_name(Iterator longname_iter)
+    void LongName<Container>::init_short_name(Iterator longname_iter)
     {
       std::string short_name = longname_iter->long_name();
-      std::string::size_type pos = longname_iter->long_name().rfind(Derived::seperator());
+      std::string::size_type pos = longname_iter->long_name().rfind(Container::value_type::seperator());
       if (pos != std::string::npos && longname_iter->process())
 	short_name = longname_iter->long_name().substr(pos + 1);
-      ShortName<Derived>(short_name, longname_iter);
+      ShortName<Container>(short_name, longname_iter);
     }
 
-template<typename Derived>
-void LongName<Derived>::generate_short_names(void)
+template<class Container>
+void LongName<Container>::generate_short_names(void)
 {
-  for (typename std::set<ShortName<Derived> >::iterator iter = ShortName<Derived>::short_names.begin();
-       iter != ShortName<Derived>::short_names.end();)
-    const_cast<ShortName<Derived>&>(*iter).solve_collisions(iter);
+  for (typename std::set<ShortName<Container> >::iterator iter =
+      ShortName<Container>::container.begin();
+       iter != ShortName<Container>::container.end();)
+    const_cast<ShortName<Container>&>(*iter).solve_collisions(iter);
 }
 
 #endif // LONGNAME_H

@@ -87,7 +87,7 @@ public:
 
 bool Graph::test_acyclic(void)
 {
-  CGDFiles::iterator some_cgd_file_iter = cgd_files.begin();
+  CGDFile::container_type::iterator some_cgd_file_iter = CGDFile::container.begin();
   FileName const& filename(some_cgd_file_iter->source_file());
   Project const& main_project(filename.get_project());
 

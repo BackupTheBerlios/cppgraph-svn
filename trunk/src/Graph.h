@@ -45,7 +45,7 @@ public:
 template<typename CallerFilter, typename CalleeFilter>
 void Graph::generate_graph(CallerFilter caller_filter, CalleeFilter callee_filter)
 {
-  for (Edges::iterator edge_iter = edges.begin(); edge_iter != edges.end(); ++edge_iter)
+  for (Edge::container_type::iterator edge_iter = Edge::container.begin(); edge_iter != Edge::container.end(); ++edge_iter)
   {
     Function& caller(const_cast<Function&>(edge_iter->get_caller()));
     if (caller_filter(caller))
@@ -63,7 +63,5 @@ void Graph::generate_graph(CallerFilter caller_filter, CalleeFilter callee_filte
   for (std::set<std::pair<size_t, size_t> >::iterator iter = M_edges.begin(); iter != M_edges.end(); ++iter)
     boost::add_edge(iter->first, iter->second, M_g);
 }
-
-extern Graph project_graph;
 
 #endif // GRAPH_H

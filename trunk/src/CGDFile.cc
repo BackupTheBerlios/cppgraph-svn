@@ -20,8 +20,6 @@
 #include "exceptions.h"
 #include "debug.h"
 
-CGDFiles cgd_files;
-
 static void process_directory(std::string const& path, bool recursive)
 {
   Dout(dc::subdirs, path << (recursive ? " (recursive)" : " (not recursive)"));
@@ -44,9 +42,9 @@ static void process_directory(std::string const& path, bool recursive)
       if (len >= 4 && !strcmp(dirent->d_name + len - 4, ".cgd"))
       {
 	Dout(dc::subdirs, "Found: " << direntname);
-	cgd_files.push_back(CGDFile(direntname));
-	CGDFiles::iterator cgd_iter = cgd_files.end();
-	--cgd_iter;
+	CGDFile cgd_file(direntname);
+	cgd_file.add(CGDFile::container, cgd_file);
+	CGDFile::container_type::iterator cgd_iter = cgd_file.get_iter();
 	CGDFile::init_short_name(cgd_iter);
       }
     }
@@ -63,7 +61,8 @@ void initialize_cgd_files(void)
 {
   for (SubdirSet::iterator iter = subdirs.begin(); iter != subdirs.end(); ++iter)
     process_directory(iter->realpath(), iter->is_recursive());
-  if (cgd_files.empty())
+  if (CGDFile::container.empty())
     THROW_EXCEPTION(no_cgd_files(), "initialize_cgd_files(): No \".cgd\" input files found");
   CGDFile::generate_short_names();
 }
+

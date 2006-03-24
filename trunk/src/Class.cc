@@ -14,22 +14,10 @@
 #include "Function.h"
 #include "debug.h"
 
-Classes classes;
-
-Class::Class(std::string const& base_name) :
-    M_KEY_base_name(base_name), M_is_class(false), M_parent(classes.end()), M_is_functor(false)
-{
-  M_iter = classes.insert(*this).first;
-  const_cast<Class&>(*M_iter).M_iter = M_iter;
-  M_is_class = M_iter->M_is_class;
-  M_parent = M_iter->M_parent;
-  M_is_functor = M_iter->M_is_functor;
-}
-
 void Class::set_parent(void)
 {
   // We can be called more than once, speed that up.
-  if (M_parent != classes.end())
+  if (M_parent != container.end())
     return;
   std::string::size_type pos = M_KEY_base_name.rfind("::");
   std::string parent_name;
@@ -43,9 +31,8 @@ void Class::set_parent(void)
 
 void Class::add_project(Project const& project)
 {
-  Projects::iterator project_iter = project.get_iter();
-  M_projects.insert(std::pair<Projects::iterator, int>(project_iter, 0)).first->second++;
+  if (M_KEY_base_name.substr(0, 3) == "std" && project.short_name() != "4.0.2")
+    DoutFatal(dc::core, "Assigning " << project.short_name() << " to " << M_KEY_base_name);
+  Project::container_type::iterator project_iter = project.get_iter();
+  M_projects.insert(std::pair<Project::container_type::iterator, int>(project_iter, 0)).first->second++;
 }
-
-std::string const Class::S_root_namespace = "::";
-

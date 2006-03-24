@@ -14,31 +14,34 @@
 
 #include <string>
 #include <set>
-#include "LongName.h"
+#include "FileNameData.h"
+#include "Project.h"
 
-class Project;
-
-class FileName : public LongName<FileName> {
+class FileName : public FileNameData<std::set<FileName> > {
 public:
-  typedef std::set<FileName> container_type;
-private:
-  std::set<Project>::iterator M_project;
-  container_type::iterator M_iter;
-  bool M_is_source_file;			// Set when filename ends on .cc, .cpp, .cxx or .C.
-public:
-  FileName(std::string const& filename);
+  FileName(std::string const& filename) : FileNameData<std::set<FileName> >(filename)
+  {
+    if (add(container, *this))
+    {
+      init_short_name(this->M_iter);
+      bool is_source_file = false;
+      std::string::size_type pos = this->M_KEY_long_name.rfind('.');
+      if (pos != std::string::npos)
+      {
+	std::string extension = this->M_KEY_long_name.substr(pos);
+	is_source_file =
+	  extension == ".cc" ||
+	  extension == ".cxx" ||
+	  extension == ".cpp" ||
+	  extension == ".C" ||
+	  extension == ".c";
+      }
+      const_cast<FileName&>(*this->M_iter).M_is_source_file = is_source_file;
+    }
+    M_is_source_file = this->M_iter->M_is_source_file;
+  }
 
-  container_type::iterator get_iter(void) const { return M_iter; }
-  bool is_real_name(void) const { return M_KEY_long_name[0] == '/'; }
-  void set_project(std::set<Project>::iterator project_iter) { M_project = project_iter; }
-  Project const& get_project(void) const;
-  static char const* seperator(void) { return "/"; }
-  bool process(void) const { return is_real_name(); }
-  bool is_source_file(void) const { return M_is_source_file; }
+  void set_project(Project::container_type::iterator project_iter) { M_project = project_iter; }
 };
-
-typedef FileName::container_type FileNames;
-
-extern FileNames filenames;
 
 #endif // FILENAME_H

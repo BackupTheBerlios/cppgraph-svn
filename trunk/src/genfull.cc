@@ -27,7 +27,6 @@
 #include "FileName.h"
 #include "Location.h"
 #include "Function.h"
-#include "Edge.inl"
 #include "collapsedpath.h"
 #include "Directory.h"
 #include "DirTree.h"
@@ -37,9 +36,11 @@
 #include "CGDFile.h"
 #include "debug.h"
 #include "generate_project_graph.h"
+#include "generate_class_graph.h"
 #include "Graph.h"
+#include "serialization.h"
 
-void process_input_line(char const* line, CGDFiles::iterator cgd_file, int line_nr, std::string const& curdir);
+void process_input_line(char const* line, CGDFile::container_type::iterator cgd_file, int line_nr, std::string const& curdir);
 
 int const exit_code_success = 0;
 int const error_parent_dir = 1;		// --subdir contains ".."
@@ -49,8 +50,8 @@ int const error_runtime_exception = 4;	// Program caught runtime-error exception
 
 struct find_header : public std::unary_function<FileName, void> {
   char const* M_header;
-  std::map<Projects::iterator, int>& M_count_map;
-  find_header(char const* header, std::map<Projects::iterator, int>& count_map) :
+  std::map<Project::container_type::iterator, int>& M_count_map;
+  find_header(char const* header, std::map<Project::container_type::iterator, int>& count_map) :
       M_header(header), M_count_map(count_map) { }
   void operator()(FileName const& filename)
   {
@@ -58,15 +59,15 @@ struct find_header : public std::unary_function<FileName, void> {
       return;
     if (filename.short_name() == M_header)
     {
-      std::pair<std::map<Projects::iterator, int>::iterator, bool> result = 
-	  M_count_map.insert(std::pair<Projects::iterator, int>(filename.get_project().get_iter(), 1));
+      std::pair<std::map<Project::container_type::iterator, int>::iterator, bool> result = 
+	  M_count_map.insert(std::pair<Project::container_type::iterator, int>(filename.get_project().get_iter(), 1));
       if (!result.second)
 	++(result.first->second);
     }
   }
 };
 
-bool operator<(Projects::iterator p1, Projects::iterator p2)
+bool operator<(Project::container_type::iterator p1, Project::container_type::iterator p2)
 {
   return p1->directory() < p2->directory();
 }
@@ -206,10 +207,10 @@ int main(int argc, char* const argv[])
     initialize_cgd_files();
     if (verbose)
     {
-      std::cout << "Found " << cgd_files.size() << " \".cgd\" input files.\n";
+      std::cout << "Found " << CGDFile::container.size() << " \".cgd\" input files.\n";
       if (verbose > 1)
       {
-	for (CGDFiles::iterator iter = cgd_files.begin(); iter != cgd_files.end(); ++iter)
+	for (CGDFile::container_type::iterator iter = CGDFile::container.begin(); iter != CGDFile::container.end(); ++iter)
 	  std::cout << "  " << iter->long_name() << " [" << iter->short_name() << "]\n";
       }
     }
@@ -226,7 +227,7 @@ int main(int argc, char* const argv[])
     int const buflen = 4096;
     char* buf = new char [buflen];
     AllocTag(buf, "Buffer used for storing input lines while reading .cgd files.");
-    for (CGDFiles::iterator iter = cgd_files.begin(); iter != cgd_files.end(); ++iter)
+    for (CGDFile::container_type::iterator iter = CGDFile::container.begin(); iter != CGDFile::container.end(); ++iter)
     {
       if (verbose > 1)
 	std::cout << "  " << iter->long_name() << std::flush;
@@ -255,20 +256,20 @@ int main(int argc, char* const argv[])
     {
       if (verbose == 1)
 	std::cout << " done.\n";
-      std::cout << "Found " << filenames.size() << " different source files.\n";
+      std::cout << "Found " << FileName::container.size() << " different source files.\n";
       if (verbose > 2)
       {
-	for (FileNames::iterator iter = filenames.begin(); iter != filenames.end(); ++iter)
+	for (FileName::container_type::iterator iter = FileName::container.begin(); iter != FileName::container.end(); ++iter)
 	  std::cout << "  \"" << iter->long_name() << "\" [" << iter->short_name() << "]\n";
       }
-      std::cout << "Found " << functions.size() << " different functions (vertices).\n";
+      std::cout << "Found " << Function::container.size() << " different functions (vertices).\n";
       if (verbose > 2)
       {
-	for (Functions::iterator iter = functions.begin(); iter != functions.end(); ++iter)
+	for (Functions::iterator iter = Function::container.begin(); iter != Function::container.end(); ++iter)
 	  std::cout << "  \"" << iter->name() << "\"\n";
       }
-      std::cout << "Found " << locations.size() << " different source locations at which functions are defined or called from.\n";
-      std::cout << "Found " << edges.size() << " different caller/callee function pairs (edges).\n";
+      std::cout << "Found " << Location::container.size() << " different source locations at which functions are defined or called from.\n";
+      std::cout << "Found " << Edge::container.size() << " different caller/callee function pairs (edges).\n";
     }
 
     //---------------------------------------------------------------------------------------------
@@ -279,7 +280,8 @@ int main(int argc, char* const argv[])
     if (verbose > 2)
     {
       std::cout << "\nDirectories found:\n";
-      for (Directories::iterator dir_iter = directories.begin(); dir_iter != directories.end(); ++dir_iter)
+      for (Directory::container_type::iterator dir_iter = Directory::container.begin();
+           dir_iter != Directory::container.end(); ++dir_iter)
 	std::cout << "  " << dir_iter->str() << '\n';
     }
 
@@ -299,13 +301,13 @@ int main(int argc, char* const argv[])
     if (verbose)
     {
       std::cout << "done." << std::endl;
-      std::cout << "Found " << directories.size() << " different directories.\n";
+      std::cout << "Found " << Directory::container.size() << " different directories.\n";
       if (verbose > 1)
-	for (Directories::const_iterator iter = directories.begin(); iter != directories.end(); ++iter)
+	for (Directory::container_type::const_iterator iter = Directory::container.begin(); iter != Directory::container.end(); ++iter)
 	  std::cout << "  " << iter->str() << " (files: " << iter->count() << ")" << std::endl;
-      std::cout << "Found " << dirtrees.size() << " possible project candidates.\n";
+      std::cout << "Found " << DirTree::container.size() << " possible project candidates.\n";
       if (verbose > 1)
-	for (DirTrees::const_iterator iter = dirtrees.begin(); iter != dirtrees.end(); ++iter)
+	for (DirTree::container_type::const_iterator iter = DirTree::container.begin(); iter != DirTree::container.end(); ++iter)
 	{
 	  std::cout << "  " << iter->str();
 	  int nrfiles = iter->nrfiles();
@@ -317,21 +319,23 @@ int main(int argc, char* const argv[])
 	    std::cout << " General include directory.";
 	  std::cout << '\n';
 	}
-      std::cout << "Found " << projects.size() << " different project directories.\n";
+      std::cout << "Found " << Project::container.size() << " different project directories.\n";
       std::cout << "  Files\tDirectory\n";
-      for (Projects::const_iterator iter = projects.begin(); iter != projects.end(); ++iter)
+      for (Project::container_type::const_iterator iter = Project::container.begin();
+          iter != Project::container.end(); ++iter)
 	std::cout << "  " << iter->nrfiles() << '\t' << iter->directory() << " [" << iter->short_name() << "]\n";
     }
 
     //---------------------------------------------------------------------------------------------
     if (verbose)
       std::cout << "Determining which project each file belongs to..." << std::flush;
-    for (FileNames::iterator iter = filenames.begin(); iter != filenames.end(); ++iter)
+    for (FileName::container_type::iterator iter = FileName::container.begin(); iter != FileName::container.end(); ++iter)
     {
       if (!iter->is_real_name())
 	continue;
-      // Assign Projects to FileNames.
-      for (Projects::iterator project_iter = projects.begin(); project_iter != projects.end(); ++project_iter)
+      // Assign Project::container to FileName::container.
+      for (Project::container_type::iterator project_iter = Project::container.begin();
+          project_iter != Project::container.end(); ++project_iter)
       {
 	if (iter->long_name().compare(0, project_iter->directory().size(), project_iter->directory()) == 0)
 	{
@@ -345,10 +349,11 @@ int main(int argc, char* const argv[])
       std::cout << " done.\n";
       if (verbose > 2)
       {
-	for (Projects::iterator project_iter = projects.begin(); project_iter != projects.end(); ++project_iter)
+	for (Project::container_type::iterator project_iter = Project::container.begin();
+	    project_iter != Project::container.end(); ++project_iter)
 	{
 	  std::cout << "  Project: " << project_iter->directory() << '\n';
-	  for (FileNames::iterator iter = filenames.begin(); iter != filenames.end(); ++iter)
+	  for (FileName::container_type::iterator iter = FileName::container.begin(); iter != FileName::container.end(); ++iter)
 	  {
 	    if (!iter->is_real_name())
 	      continue;
@@ -363,22 +368,22 @@ int main(int argc, char* const argv[])
     // Determine which project is related to gcc itself.
     if (verbose)
       std::cout << "Determining which project corresponds to g++..." << std::flush;
-    Projects::iterator gcc_iter = projects.end();
+    Project::container_type::iterator gcc_iter = Project::container.end();
     {
       char const* const std_headers[] = { "cstdlib", "cstring", "exception", "fstream", "iomanip",
 	  "iostream", "istream", "limits", "memory", "new", "ostream", "sstream", "stdexcept",
 	  "streambuf", "typeinfo", NULL };
-      std::map<Projects::iterator, int> count_map;
+      std::map<Project::container_type::iterator, int> count_map;
       for (char const* const* header_ptr = std_headers; *header_ptr; ++header_ptr)
-	for_each(filenames.begin(), filenames.end(), find_header(*header_ptr, count_map));
+	for_each(FileName::container.begin(), FileName::container.end(), find_header(*header_ptr, count_map));
       int count = 0;
-      for (std::map<Projects::iterator, int>::iterator iter = count_map.begin(); iter != count_map.end(); ++iter)
+      for (std::map<Project::container_type::iterator, int>::iterator iter = count_map.begin(); iter != count_map.end(); ++iter)
 	if (iter->second > count)
 	{
 	  count = iter->second;
 	  gcc_iter = iter->first->get_iter();
 	}
-      for (FileNames::iterator iter = filenames.begin(); iter != filenames.end(); ++iter)
+      for (FileName::container_type::iterator iter = FileName::container.begin(); iter != FileName::container.end(); ++iter)
       {
 	if (!iter->is_real_name())
 	  const_cast<FileName&>(*iter).set_project(gcc_iter);
@@ -387,7 +392,7 @@ int main(int argc, char* const argv[])
     if (verbose)
     {
       std::cout << " done.\n";
-      if (gcc_iter != projects.end())
+      if (gcc_iter != Project::container.end())
 	std::cout << "g++ resides in project " << gcc_iter->directory() << std::endl;
     }
 
@@ -400,7 +405,7 @@ int main(int argc, char* const argv[])
     }
     int count = 0;			// Number of functions parsed so far.
     std::set<std::string> types;	// All types, seen so far.
-    for (Functions::iterator next = functions.begin(); next != functions.end();)
+    for (Functions::iterator next = Function::container.begin(); next != Function::container.end();)
     {
       Functions::iterator iter = next++;
       FunctionDecl& decl(const_cast<Function&>(*iter).decl());
@@ -419,7 +424,7 @@ int main(int argc, char* const argv[])
 	  if (verbose)
 	    std::cout << "\nWARNING: Parsing failed for '" << iter->name() << "'!" << std::endl;
 	  DoutFatal(dc::fatal, "Parsing failed for '" << iter->name() << "'!");
-	  functions.erase(iter);
+	  Function::container.erase(iter);
 	  continue;
 	}
       }
@@ -436,7 +441,7 @@ int main(int argc, char* const argv[])
     // Initialize classes.
     if (verbose)
       std::cout << "Analyzing function declarations... " << std::flush;
-    for (Functions::iterator iter = functions.begin(); iter != functions.end(); ++iter)
+    for (Functions::iterator iter = Function::container.begin(); iter != Function::container.end(); ++iter)
     {
       if (iter->name()[0] == '(')	// Skip 'special' functions, they don't have a declaration.
       {
@@ -573,16 +578,16 @@ int main(int argc, char* const argv[])
     do
     {
       classes_size = 0;
-      for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+      for (Class::container_type::iterator iter = Class::container.begin(); iter != Class::container.end(); ++iter)
       {
 	++classes_size;
 	const_cast<Class&>(*iter).set_parent();
       }
     }
-    while(classes.size() > classes_size);	// It could be that set_parent() created
-    						// namespaces that weren't in classes before.
+    while(Class::container.size() > classes_size);	// It could be that set_parent() created
+    							// namespaces that weren't in Class::container before.
     // Perhaps we saw a type later than the first time it appeared as scope, check again.
-    for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+    for (Class::container_type::iterator iter = Class::container.begin(); iter != Class::container.end(); ++iter)
     {
       if (!iter->is_class() && types.find(iter->base_name()) != types.end())
       {
@@ -591,9 +596,9 @@ int main(int argc, char* const argv[])
       }
     }
     // It might happen that some parent class was marked as class, but we didn't notice that for the child.
-    for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+    for (Class::container_type::iterator iter = Class::container.begin(); iter != Class::container.end(); ++iter)
     {
-      if (!iter->is_class() && iter->parent_iter() != classes.end() && iter->parent_iter()->is_class())
+      if (!iter->is_class() && iter->parent_iter() != Class::container.end() && iter->parent_iter()->is_class())
       {
 	Dout(dc::decl, "Calling set_class() for scopename \"" << iter->base_name() << "\", because parent is a class.");
 	const_cast<Class&>(*iter).set_class();
@@ -602,33 +607,33 @@ int main(int argc, char* const argv[])
     if (verbose)
     {
       std::cout << "done." << std::endl;
-      std::cout << "Found " << classes.size() << " different class- or namespaces.\n";
+      std::cout << "Found " << Class::container.size() << " different class- or namespaces.\n";
       int nr_classes = 0;
-      for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+      for (Class::container_type::iterator iter = Class::container.begin(); iter != Class::container.end(); ++iter)
 	if (iter->is_class())
 	  ++nr_classes;
       std::cout << "Found " << nr_classes << " classes with template arguments, de- or constructor, or qualified member functions.\n";
       if (verbose > 2)
-	for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+	for (Class::container_type::iterator iter = Class::container.begin(); iter != Class::container.end(); ++iter)
 	  if (iter->is_class())
 	  {
 	    std::string parent;
-	    Classes::iterator parent_iter = iter->parent_iter();
-	    if (parent_iter != classes.end())
+	    Class::container_type::iterator parent_iter = iter->parent_iter();
+	    if (parent_iter != Class::container.end())
 	      parent = parent_iter->base_name();
 	    std::cout << "  \"" << iter->base_name() << "\" [parent: \"" << parent << "\"]" << '\n';
 	  }
       if (verbose > 1)
       {
-	std::cout << "That leaves " << classes.size() - nr_classes << ", possible, namespaces.\n";
-	for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+	std::cout << "That leaves " << Class::container.size() - nr_classes << ", possible, namespaces.\n";
+	for (Class::container_type::iterator iter = Class::container.begin(); iter != Class::container.end(); ++iter)
 	  if (!iter->is_class())
 	    std::cout << "  \"" << iter->base_name() << "\"\n";
       }
       if (verbose > 2)
       {
 	std::cout << "Below follows a list of each function and the class/namespace it belongs to:\n";
-	for (Functions::iterator iter = functions.begin(); iter != functions.end(); ++iter)
+	for (Functions::iterator iter = Function::container.begin(); iter != Function::container.end(); ++iter)
 	{
 	  std::cout << "  " << iter->name() << '\n';
 	  std::cout << "  `-> \"" << iter->get_class().base_name() << "\"\n";
@@ -639,15 +644,15 @@ int main(int argc, char* const argv[])
     //---------------------------------------------------------------------------------------------
     if (verbose)
       std::cout << "Determining the relationship between classes/namespaces and projects..." << std::flush;
-    for (Functions::iterator iter = functions.begin(); iter != functions.end(); ++iter)
+    for (Functions::iterator iter = Function::container.begin(); iter != Function::container.end(); ++iter)
     {
       if (!iter->has_definition())
 	continue;
       Class const& a_class = const_cast<Function&>(*iter).get_class();
-      Classes::iterator class_iter = a_class.get_iter();
+      Class::container_type::iterator class_iter = a_class.get_iter();
       Project const& project(iter->get_file().get_project());
       // The location of a (possibly) compiler generated function can be wrong (bug in compiler).
-      // In that case the location refers to location of instantiation of an object that caused
+      // In that case the location refers to the location of instantiation of an object that caused
       // the method to be generated. This will usually be the current project (which is the project
       // that belongs to the source file of the 'current' compilation unit).
       // Therefore, if the function at hand is possibly compiler generated, and the file of
@@ -661,7 +666,7 @@ int main(int argc, char* const argv[])
 	const_cast<Class&>(*class_iter).add_project(project);
 	class_iter = class_iter->parent_iter();
       }
-      while (class_iter != classes.end());
+      while (class_iter != Class::container.end());
     }
     bool assigned_empty;
     bool first = true;
@@ -669,15 +674,15 @@ int main(int argc, char* const argv[])
     {
       // Inherit project(s) from parent class/namespace (but not ::), for those classes
       // that are not assigned to a project yet.
-      for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+      for (Class::container_type::iterator iter = Class::container.begin(); iter != Class::container.end(); ++iter)
       {
 	if (iter->base_name().empty())
 	  continue;
-	std::map<Projects::iterator, int>& project_map = const_cast<Class&>(*iter).get_projects();
+	std::map<Project::container_type::iterator, int>& project_map = const_cast<Class&>(*iter).get_projects();
 	if (project_map.empty())
 	{
-	  Classes::iterator parent_iter = iter->parent_iter();
-	  while (parent_iter != classes.end() && !parent_iter->base_name().empty())
+	  Class::container_type::iterator parent_iter = iter->parent_iter();
+	  while (parent_iter != Class::container.end() && !parent_iter->base_name().empty())
 	  {
 	    if (!parent_iter->get_projects().empty())
 	    {
@@ -693,12 +698,12 @@ int main(int argc, char* const argv[])
       // of classes (and their still unassigned namespace) that (apparently) only contain
       // a default constructor, copy constructor, destructor and/or assignment operator,
       // and therefore are still unassigned.
-      for (Functions::iterator iter = functions.begin(); iter != functions.end(); ++iter)
+      for (Functions::iterator iter = Function::container.begin(); iter != Function::container.end(); ++iter)
       {
         if (!iter->has_definition())
 	  continue;
 	Class const& a_class = iter->get_class();
-	std::map<Projects::iterator, int> const& project_map = a_class.get_projects();
+	std::map<Project::container_type::iterator, int> const& project_map = a_class.get_projects();
 	if (project_map.empty() && iter->cgd_file()->has_source_file())
 	{
 	  Project const& project = iter->cgd_file()->source_file().get_project();
@@ -713,13 +718,13 @@ int main(int argc, char* const argv[])
 	        " \"" << a_class.base_name() << "\" to project " <<
 		project.long_name() << std::endl;
 	  }
-	  Classes::iterator class_iter = a_class.get_iter();
+	  Class::container_type::iterator class_iter = a_class.get_iter();
 	  do
 	  {
 	    const_cast<Class&>(*class_iter).add_project(project);
 	    class_iter = class_iter->parent_iter();
 	  }
-	  while (class_iter != classes.end());
+	  while (class_iter != Class::container.end());
 	  assigned_empty = true;
 	}
       }
@@ -730,16 +735,17 @@ int main(int argc, char* const argv[])
       std::cout << " done.\n";
       if (verbose > 1)
       {
-	for (Projects::iterator project_iter = projects.begin(); project_iter != projects.end(); ++project_iter)
+	for (Project::container_type::iterator project_iter = Project::container.begin();
+	    project_iter != Project::container.end(); ++project_iter)
 	{
 	  std::cout << "  Project: " << project_iter->directory() << '\n';
 	  std::cout << "    Refs\tClass/Namespace\n";
-	  for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+	  for (Class::container_type::iterator iter = Class::container.begin(); iter != Class::container.end(); ++iter)
 	  {
 	    if (iter->base_name().empty())
 	      continue;
-	    std::map<Projects::iterator, int> const& project_map = iter->get_projects();
-	    for (std::map<Projects::iterator, int>::const_iterator project_iter2 = project_map.begin();
+	    std::map<Project::container_type::iterator, int> const& project_map = iter->get_projects();
+	    for (std::map<Project::container_type::iterator, int>::const_iterator project_iter2 = project_map.begin();
 		project_iter2 != project_map.end(); ++project_iter2)
 	      if (project_iter2->first == project_iter)
 		std::cout << std::setw(8) << project_iter2->second << "\t\"" << iter->base_name() << "\"\n";
@@ -748,11 +754,11 @@ int main(int argc, char* const argv[])
       }
       bool any_empty = false;
       bool any_ambigious = false;
-      for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+      for (Class::container_type::iterator iter = Class::container.begin(); iter != Class::container.end(); ++iter)
       {
 	if (iter->base_name().empty())
 	  continue;
-	std::map<Projects::iterator, int> const& project_map = iter->get_projects();
+	std::map<Project::container_type::iterator, int> const& project_map = iter->get_projects();
 	if (project_map.empty())
 	{
 	  std::cout << "Class or namespace \"" << iter->base_name() << "\" is not related to any project!\n";
@@ -762,7 +768,7 @@ int main(int argc, char* const argv[])
 	{
 	  std::cout << '"' << iter->base_name() << "\" is related to more than one project!\n";
 	  any_ambigious = true;
-	  for (std::map<Projects::iterator, int>::const_iterator project_iter2 = project_map.begin();
+	  for (std::map<Project::container_type::iterator, int>::const_iterator project_iter2 = project_map.begin();
 	      project_iter2 != project_map.end(); ++project_iter2)
 	    std::cout << "  " << project_iter2->first->directory() << '\n';
 	}
@@ -777,7 +783,7 @@ int main(int argc, char* const argv[])
     //---------------------------------------------------------------------------------------------
     if (verbose)
       std::cout << "Determining the relationship between functions and projects..." << std::flush;
-    for (Functions::iterator iter = functions.begin(); iter != functions.end(); ++iter)
+    for (Functions::iterator iter = Function::container.begin(); iter != Function::container.end(); ++iter)
     {
       Class const& a_class = iter->get_class();
       if (!a_class.base_name().empty())
@@ -798,11 +804,12 @@ int main(int argc, char* const argv[])
 
     //---------------------------------------------------------------------------------------------
     generate_project_graph(verbose);
+    generate_class_graph(verbose);
 
     //---------------------------------------------------------------------------------------------
     if (verbose)
       std::cout << "Trying to determine which classes are functors..." << std::flush;
-    for (std::set<Edge>::const_iterator iter = edges.begin(); iter != edges.end(); ++iter)
+    for (std::set<Edge>::const_iterator iter = Edge::container.begin(); iter != Edge::container.end(); ++iter)
     {
       Edge const& edge(*iter);
       Function const& caller(edge.get_caller());
@@ -828,11 +835,26 @@ int main(int argc, char* const argv[])
       std::cout << " done." << std::endl;
       if (verbose > 1)
       {
-	for (Classes::iterator iter = classes.begin(); iter != classes.end(); ++iter)
+	for (Class::container_type::iterator iter = Class::container.begin(); iter != Class::container.end(); ++iter)
 	  if (iter->is_functor())
 	    std::cout << "  " << iter->base_name() << std::endl;
       }
     }
+
+    //---------------------------------------------------------------------------------------------
+    CGDFile::initialize_serialization_index();
+    ShortName<CGDFile::container_type>::initialize_serialization_index();
+    FileName::initialize_serialization_index();
+    ShortName<FileName::container_type>::initialize_serialization_index();
+    DirTree::initialize_serialization_index();
+    Directory::initialize_serialization_index();
+    Location::initialize_serialization_index();
+    Project::initialize_serialization_index();
+    Class::initialize_serialization_index();
+    ShortName<Project::container_type>::initialize_serialization_index();
+    Function::initialize_serialization_index();
+    Edge::initialize_serialization_index();
+    save_state("test.xml");
   }
   catch (clean_exit const& error)
   {
@@ -862,7 +884,7 @@ int main(int argc, char* const argv[])
 }
 
 void process_input_line(
-    char const* line, CGDFiles::iterator cgd_file, int input_line_nr, std::string const& curdir)
+    char const* line, CGDFile::container_type::iterator cgd_file, int input_line_nr, std::string const& curdir)
 {
   if (line[0] != 'F' && line[0] != 'C')
   {

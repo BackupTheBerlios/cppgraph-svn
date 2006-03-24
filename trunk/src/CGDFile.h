@@ -12,24 +12,18 @@
 #ifndef CGDFILE_H
 #define CGDFILE_H
 
-#include "LongName.h"
+#include <vector>
+#include "CGDFileData.h"
 #include "FileName.h"
 
-class CGDFile : public LongName<CGDFile> {
+class CGDFile : public CGDFileData<std::list<CGDFile>, FileName> {
 public:
-  typedef std::list<CGDFile> container_type;	// Must be list, so that push_back doesn't invalidate iterators.
-  FileNames::iterator M_source_file;
+  CGDFile(std::string const& filename) : CGDFileData<std::list<CGDFile>, FileName>(filename) { /* No call to add() */ }
+
 public:
-  CGDFile(std::string const& filename) : LongName<CGDFile>(filename), M_source_file(filenames.end()) { }
-  static char const* seperator(void) { return "/"; }
-  bool process(void) const { return true; }
-  bool has_source_file(void) const { return M_source_file != filenames.end(); }
-  FileName const& source_file(void) const { return *M_source_file; }
   void set_source_file(FileName const& source_file) { M_source_file = source_file.get_iter(); }
 };
 
-typedef CGDFile::container_type CGDFiles;
-extern CGDFiles cgd_files;
 void initialize_cgd_files(void);
 
 #endif // CGDFILE_H

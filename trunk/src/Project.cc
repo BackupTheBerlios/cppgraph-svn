@@ -12,24 +12,16 @@
 #include "sys.h"
 #include "Project.h"
 
-Projects projects;
-
-Project::Project(DirTrees::iterator const& dirtree): LongName<Project>(""), M_KEY_dirtree(dirtree)
-{
-  M_iter = projects.insert(*this).first;
-  const_cast<Project&>(*M_iter).M_iter = M_iter;
-}
-
 void initialize_projects(void)
 {
-  for (DirTrees::iterator iter = dirtrees.begin(); iter != dirtrees.end(); ++iter)
+  for (DirTree::container_type::iterator iter = DirTree::container.begin(); iter != DirTree::container.end(); ++iter)
   {
     if (iter->nrfiles())
     {
       Project const project(iter);
     }
   }
-  for (Projects::iterator iter = projects.begin(); iter != projects.end(); ++iter)
+  for (Project::container_type::iterator iter = Project::container.begin(); iter != Project::container.end(); ++iter)
     const_cast<Project&>(*iter).generate_long_name();
   Project::generate_short_names();
 }
@@ -41,3 +33,4 @@ std::ostream& operator<<(std::ostream& os, Project const& project)
   return os;
 }
 #endif
+

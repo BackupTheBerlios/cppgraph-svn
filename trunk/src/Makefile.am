@@ -11,6 +11,8 @@ CXXFLAGS = @CXXFLAGS@
 
 LIBS = @LIBS@
 cppgraph_SOURCES = \
+	serialization.cc \
+        generate_class_graph.cc \
 	generate_project_graph.cc \
 	Graph.cc \
 	Node.cc \

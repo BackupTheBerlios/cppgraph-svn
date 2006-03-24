@@ -14,6 +14,8 @@
 
 #include <sys/types.h>
 #include <string>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/nvp.hpp>
 
 enum NodeType {
   project_node,
@@ -22,9 +24,6 @@ enum NodeType {
 };
 
 class Node {
-private:
-  size_t M_index;
-
 public:
   Node(void) { }
   virtual ~Node() { }
@@ -36,6 +35,17 @@ public:
   virtual std::string const& node_name(void) const = 0;
   virtual NodeType node_type(void) const = 0;
 
+private:
+  size_t M_index;
+
+private:
+  // Serialization.
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive& ar, unsigned int const UNUSED(version))
+  {
+    ar & BOOST_SERIALIZATION_NVP(M_index);
+  }
 };
 
 #endif // NODE_H

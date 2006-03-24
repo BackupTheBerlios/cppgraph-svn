@@ -11,12 +11,3 @@
 
 #include "sys.h"
 #include "Location.h"
-
-Locations locations;
-
-Location::Location(FileName const& filename, int line_nr) :
-    M_KEY_filename_ptr(filename.get_iter()), M_KEY_line_nr(line_nr)
-{
-  M_iter = locations.insert(*this).first;
-  const_cast<Location&>(*M_iter).M_iter = M_iter;
-}

@@ -32,4 +32,6 @@
 // Also cause a full recompile when the definition of CWDEBUG is changed.
 // CWDEBUG: @USE_LIBCWD@
 
+#define UNUSED(x)
+
 #endif // SYS_H

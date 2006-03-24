@@ -14,13 +14,9 @@
 
 #include <string>
 #include <cassert>
+#include "serialization.h"
 
 class ClassDecl {
-private:
-  std::string M_name;
-  std::string M_template_argument_list_opt;
-  bool M_is_function;
-  int M_action_count;	// Used by parser.
 public:
   ClassDecl(void) : M_is_function(false), M_action_count(0) { }
   ClassDecl(std::string const& name) : M_name(name), M_is_function(false), M_action_count(0) { }
@@ -40,6 +36,23 @@ public:
 
   bool action_begin(void) { return 1 == ++M_action_count; }
   bool action_end(void) { return 0 == --M_action_count; }
+
+private:
+  std::string M_name;
+  std::string M_template_argument_list_opt;
+  bool M_is_function;
+  int M_action_count;		// Used by parser.
+
+private:
+  // Serialization.
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive& ar, unsigned int const UNUSED(version))
+  {
+    ar & BOOST_SERIALIZATION_NVP(M_name);
+    ar & BOOST_SERIALIZATION_NVP(M_template_argument_list_opt);
+    ar & BOOST_SERIALIZATION_NVP(M_is_function);
+  }
 };
 
 #endif // CLASSDECL_H
