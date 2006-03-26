@@ -21,10 +21,7 @@ cppgraph_SOURCES = \
 	collapsedpath.cc \
 	Subdir.cc \
 	CGDFile.cc \
-	FileName.cc \
-	Location.cc \
 	Function.cc \
-	Edge.cc \
 	Directory.cc \
 	DirTree.cc \
 	Project.cc \

@@ -13,7 +13,6 @@
 #include "Function.h"
 #include "Edge.h"
 #include "EdgeData.inl"		// For instantiation of Edge objects.
-#include "debug.h"
 
 Function::Function(std::string const& function_name, FileName const& filename,
     CGDFile::container_type::const_iterator cgd_file) :
@@ -29,11 +28,3 @@ void Function::add_callee(Function const& callee)
   this->edges_out().push_back(edge.get_iter());
   const_cast<Function&>(*callee.get_iter()).edges_in().push_back(edge.get_iter());
 }
-
-#ifdef CWDEBUG
-std::ostream& operator<<(std::ostream& os, Function const& function)
-{
-  os << function.decl() << " [" << function.get_project() << "]";
-  return os;
-}
-#endif

@@ -136,4 +136,10 @@ void DirTreeData<Container>::serialize(Archive& ar, unsigned int const UNUSED(ve
   ar & BOOST_SERIALIZATION_NVP(M_is_system);
 }
 
+template<class Container>
+std::ostream& operator<<(std::ostream& os, DirTreeData<Container> const& dirtree)
+{
+  return os << dirtree.str() << " (" << dirtree.totalfiles() << ")";
+}
+
 #endif // DIRTREEDATA_H

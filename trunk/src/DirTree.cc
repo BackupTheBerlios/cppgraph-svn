@@ -37,11 +37,6 @@ void DirTree::erase(void)
   DirTree::container.erase(M_iter);
 }
 
-std::ostream& operator<<(std::ostream& os, DirTree const& dirtree)
-{
-  return os << dirtree.str() << " (" << dirtree.totalfiles() << ")";
-}
-
 void initialize_dirtrees(
     std::vector<std::string> const& cmdline_prefixdirs,
     std::vector<std::string> const& cmdline_systemdirs)

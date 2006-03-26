@@ -18,7 +18,6 @@ class FunctionDecl;
 class Project;
 class ClassDecl;
 
-std::ostream& operator<<(std::ostream& os, Function const& function);
 std::ostream& operator<<(std::ostream& os, FunctionDecl const& decl);
 std::ostream& operator<<(std::ostream& os, Project const& project);
 std::ostream& operator<<(std::ostream& os, ClassDecl const& class_decl);

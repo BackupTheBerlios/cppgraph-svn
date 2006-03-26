@@ -16,6 +16,7 @@
 #include "Node.h"
 #include "ElementBase.h"
 #include "serialization.h"
+#include "debug.h"
 
 template<class Container, class CGDFile, class FileName, class Project, class Classes, class FunctionDecl, class Edges>
 class FunctionData;
@@ -78,6 +79,16 @@ private:
   template<class Archive>
   void serialize(Archive& ar, unsigned int const version);
 };
+
+#ifdef CWDEBUG
+template<class Container, class CGDFile, class FileName, class Project, class Classes, class FunctionDecl, class Edges>
+std::ostream& operator<<(std::ostream& os,
+    FunctionData<Container, CGDFile, FileName, Project, Classes, FunctionDecl, Edges> const& function)
+{
+  os << function.decl() << " [" << function.get_project() << "]";
+  return os;
+}
+#endif
 
 #endif // FUNCTIONDATA_H
 
