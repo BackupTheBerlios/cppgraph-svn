@@ -57,7 +57,7 @@ HAVE_DOT=YES
 fi
 
 # Find boost.
-CW_BOOST("no", "no", [serialization])
+CW_BOOST("yes", "no", [serialization])
 
 # Used in sys.h to force recompilation.
 CW_PROG_CXX_FINGER_PRINTS
@@ -85,6 +85,8 @@ dnl Output the other configuration files.
 AC_CONFIG_FILES(
 	[Makefile]
 	[src/Makefile]
+	[src/include/Makefile]
+	[src/include/genfull/Makefile]
 	[doc/Makefile]
 	[doc/doxygen.config])
 
