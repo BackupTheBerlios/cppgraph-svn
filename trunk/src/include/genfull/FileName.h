@@ -40,7 +40,7 @@ public:
     }
     M_is_source_file = this->M_iter->M_is_source_file;
   }
-  //void set_project(Project::container_type::iterator /*project_iter*/) { /* M_project = project_iter; */ }
+  void set_project(Project::container_type::iterator project_iter) { M_project = project_iter; }
 };
 
 #endif // FILENAME_H
