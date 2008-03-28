@@ -14,8 +14,8 @@
 #include <fstream>
 #define BOOST_NO_ARGUMENT_DEPENDENT_LOOKUP
 #include <boost/archive/tmpdir.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/xml_iarchive.hpp>
+#include <boost/archive/xml_oarchive.hpp>
 #include <boost/serialization/set.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/list.hpp>
@@ -27,13 +27,14 @@ void save_state(char const* filename)
   // Make an archive.
   std::ofstream ofs(filename);
   assert(ofs.good());
-  boost::archive::text_oarchive oa(ofs);
+  boost::archive::xml_oarchive oa(ofs);
   // Store the state in the archive.
-  oa << BOOST_SERIALIZATION_NVP(DirTree::container);
-  oa << BOOST_SERIALIZATION_NVP(Project::container);
-  oa << BOOST_SERIALIZATION_NVP(Class::container);
-  oa << BOOST_SERIALIZATION_NVP(Function::container);
-  oa << BOOST_SERIALIZATION_NVP(Edge::container);
+  DirTree::container_type& DirTree_container(DirTree::container);
+  oa << BOOST_SERIALIZATION_NVP(DirTree_container);
+  //oa << BOOST_SERIALIZATION_NVP(Project::container);
+  //oa << BOOST_SERIALIZATION_NVP(Class::container);
+  //oa << BOOST_SERIALIZATION_NVP(Function::container);
+  //oa << BOOST_SERIALIZATION_NVP(Edge::container);
   assert(ofs.good());
   Dout(dc::notice, "Successfully wrote \"" << filename << '"');
   ofs.close();
@@ -44,7 +45,7 @@ void restore_state(char const* filename)
   // Open the archive.
   std::ifstream ifs(filename);
   assert(ifs.good());
-  boost::archive::text_iarchive ia(ifs);
+  boost::archive::xml_iarchive ia(ifs);
   // Restore the state from the archive.
   ia >> BOOST_SERIALIZATION_NVP(Project::container);
   ifs.close();

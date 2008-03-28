@@ -827,7 +827,7 @@ int main(int argc, char* const argv[])
         // Must be an upstream call, and therefore a functor.
 	Class const& a_class(callee.get_class());
 	const_cast<Class&>(a_class).set_functor();
-	Dout(dc::notice, caller << " (" << caller_project_index << ") calls " << callee << " (" << callee_project_index << ')');
+	// Dout(dc::notice, caller << " (" << caller_project_index << ") calls " << callee << " (" << callee_project_index << ')');
       }
     }
     if (verbose)

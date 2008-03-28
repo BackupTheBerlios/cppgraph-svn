@@ -151,7 +151,7 @@ INFO MapIteratorWrapper<Container, Iterator, INFO>::S_dummy_info;
     serialization_iterator_nvp(container, BOOST_PP_STRINGIZE(name), name)
 
 template<typename Container>
-inline boost::serialization::nvp<IteratorWrapper<Container, typename Container::iterator> >
+inline boost::serialization::nvp<IteratorWrapper<Container, typename Container::iterator> > const
     serialization_iterator_nvp(Container& container, char const* name, typename Container::iterator const& t)
 {
   IteratorWrapper<Container, typename Container::iterator>
@@ -160,7 +160,7 @@ inline boost::serialization::nvp<IteratorWrapper<Container, typename Container::
 }
 
 template<typename Container>
-inline boost::serialization::nvp<IteratorWrapper<Container, typename Container::const_iterator> >
+inline boost::serialization::nvp<IteratorWrapper<Container, typename Container::const_iterator> > const
     serialization_iterator_nvp(Container& container, char const* name, typename Container::const_iterator const& t)
 {
   IteratorWrapper<Container, typename Container::const_iterator>
@@ -170,7 +170,7 @@ inline boost::serialization::nvp<IteratorWrapper<Container, typename Container::
 
 // Specialization for std::set, because for that container, the iterator and const_iterator are the same type!
 template<typename T>
-inline boost::serialization::nvp<IteratorWrapper<std::set<T>, typename std::set<T>::const_iterator> >
+inline boost::serialization::nvp<IteratorWrapper<std::set<T>, typename std::set<T>::const_iterator> > const
     serialization_iterator_nvp(std::set<T>& container, char const* name, typename std::set<T>::const_iterator const& t)
 {
   IteratorWrapper<std::set<T>, typename std::set<T>::const_iterator>
@@ -179,7 +179,7 @@ inline boost::serialization::nvp<IteratorWrapper<std::set<T>, typename std::set<
 }
 
 template<typename Container>
-inline boost::serialization::nvp<VectorIteratorWrapper<Container, typename Container::iterator> >
+inline boost::serialization::nvp<VectorIteratorWrapper<Container, typename Container::iterator> > const
     serialization_iterator_nvp(Container& container, char const* name,
                                std::vector<typename Container::iterator> const& v)
 {
@@ -189,7 +189,7 @@ inline boost::serialization::nvp<VectorIteratorWrapper<Container, typename Conta
 }
 
 template<typename Container>
-inline boost::serialization::nvp<VectorIteratorWrapper<Container, typename Container::const_iterator> >
+inline boost::serialization::nvp<VectorIteratorWrapper<Container, typename Container::const_iterator> > const
     serialization_iterator_nvp(Container& container, char const* name,
                                std::vector<typename Container::const_iterator> const& v)
 {
@@ -200,7 +200,7 @@ inline boost::serialization::nvp<VectorIteratorWrapper<Container, typename Conta
 
 // Specialization for std::set, because for that container, the iterator and const_iterator are the same type!
 template<typename T>
-inline boost::serialization::nvp<VectorIteratorWrapper<std::set<T>, typename std::set<T>::const_iterator> >
+inline boost::serialization::nvp<VectorIteratorWrapper<std::set<T>, typename std::set<T>::const_iterator> > const
     serialization_iterator_nvp(std::set<T>& container, char const* name,
                                std::vector<typename std::set<T>::const_iterator> const& v)
 {
@@ -210,7 +210,7 @@ inline boost::serialization::nvp<VectorIteratorWrapper<std::set<T>, typename std
 }
 
 template<typename Container, typename INFO>
-inline boost::serialization::nvp<MapIteratorWrapper<Container, typename Container::iterator, INFO> >
+inline boost::serialization::nvp<MapIteratorWrapper<Container, typename Container::iterator, INFO> > const
     serialization_iterator_nvp(Container& container, char const* name,
                                std::map<typename Container::iterator, INFO> const& m)
 {
@@ -220,7 +220,7 @@ inline boost::serialization::nvp<MapIteratorWrapper<Container, typename Containe
 }
 
 template<typename Container, typename INFO>
-inline boost::serialization::nvp<MapIteratorWrapper<Container, typename Container::const_iterator, INFO> >
+inline boost::serialization::nvp<MapIteratorWrapper<Container, typename Container::const_iterator, INFO> > const
     serialization_iterator_nvp(Container& container, char const* name,
                                std::map<typename Container::const_iterator, INFO> const& m)
 {
@@ -231,7 +231,7 @@ inline boost::serialization::nvp<MapIteratorWrapper<Container, typename Containe
 
 // Specialization for std::set, because for that container, the iterator and const_iterator are the same type!
 template<typename T, typename INFO>
-inline boost::serialization::nvp<MapIteratorWrapper<std::set<T>, typename std::set<T>::const_iterator, INFO> >
+inline boost::serialization::nvp<MapIteratorWrapper<std::set<T>, typename std::set<T>::const_iterator, INFO> > const
     serialization_iterator_nvp(std::set<T>& container, char const* name,
                                std::map<typename std::set<T>::const_iterator, INFO> const& m)
 {

@@ -21,6 +21,7 @@
 struct FunctionDecl {
   std::string decl_specifier;
   std::string return_type;
+  std::string function_pointer;
   std::vector<std::string> class_or_namespaces;
   std::vector<ClassDecl> classes;
   std::string function_name;
@@ -80,6 +81,7 @@ private:
   {
     ar & BOOST_SERIALIZATION_NVP(decl_specifier);
     ar & BOOST_SERIALIZATION_NVP(return_type);
+    ar & BOOST_SERIALIZATION_NVP(function_pointer);
     ar & BOOST_SERIALIZATION_NVP(class_or_namespaces);
     ar & BOOST_SERIALIZATION_NVP(classes);
     ar & BOOST_SERIALIZATION_NVP(function_name);

@@ -53,6 +53,7 @@ void Graph::generate_graph(CallerFilter caller_filter, CalleeFilter callee_filte
     Function& callee(const_cast<Function&>(edge_iter->get_callee()));
     if (callee_filter(callee))
       continue;
+    Dout(dc::notice, "Adding " << caller << " calls " << callee);
     add_edge(caller.get_node(caller_filter.type), callee.get_node(callee_filter.type));
   }
 

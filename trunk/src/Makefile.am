@@ -2,15 +2,15 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-SUBDIRS = .
+SUBDIRS = include .
 
-bin_PROGRAMS = cppgraph
+bin_PROGRAMS = genfull
 # If you change this, also update DEFS in all other Makefile.am.
 DEFS = -DHAVE_CONFIG_H
-CXXFLAGS = @CXXFLAGS@
+CXXFLAGS = @CXXFLAGS@ @CWD_FLAGS@
 
-LIBS = @LIBS@
-cppgraph_SOURCES = \
+LIBS = @LIBS@ @CWD_LIBS@
+genfull_SOURCES = \
 	serialization.cc \
         generate_class_graph.cc \
 	generate_project_graph.cc \
@@ -31,7 +31,7 @@ cppgraph_SOURCES = \
 	ClassDecl.cc \
 	debug.cc
 
-cppgraph_CXXFLAGS =
+genfull_CXXFLAGS = -I$(srcdir)/include/genfull
 
 # --------------- Maintainer's Section
 
@@ -65,6 +65,6 @@ ctags:
 	for d in $(CTAGS_ROOT_SRCDIRS) $(top_srcdir); do \
 	  find $$d -follow -type f -name '*.h' -o -name '*.hpp' -o -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.C' >> .all_sources; \
 	done
-	ctags `cat .all_sources`
+	ctags -L .all_sources
 endif
 

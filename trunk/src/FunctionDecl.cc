@@ -17,6 +17,7 @@
 void FunctionDecl::clear(void)
 {
   return_type.clear();
+  function_pointer.clear();
   class_or_namespaces.clear();
   classes.clear();
   function_name.clear();
@@ -155,7 +156,11 @@ bool FunctionDecl::is_class_operator(void) const
 std::ostream& operator<<(std::ostream& os, FunctionDecl const& decl)
 {
   if (!decl.return_type.empty())
+  {
     os << decl.return_type << ' ';
+    if (!decl.function_pointer.empty())
+      os << "(*";
+  }
   bool first = true;
   for (std::vector<std::string>::const_iterator iter = decl.class_or_namespaces.begin();
        iter != decl.class_or_namespaces.end(); ++iter)
@@ -191,6 +196,8 @@ std::ostream& operator<<(std::ostream& os, FunctionDecl const& decl)
   os << ')';
   if (decl.has_function_qualifiers())
     os << ' ' << decl.function_qualifiers;
+  if (!decl.function_pointer.empty())
+    os << decl.function_pointer;
   return os;
 }
 #endif

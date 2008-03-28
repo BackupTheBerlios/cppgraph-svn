@@ -52,7 +52,7 @@ keyword_p(char const* str)
 // Actor to clear a FunctionDecl object and mark it as constructor.
 struct is_constructor_a {
   is_constructor_a(FunctionDecl& decl, std::set<std::string>& types) : M_decl(decl), M_types(types) { }
-  void operator()(char) const { M_decl.clear(); M_types.clear(); M_decl.set_constructor(); }
+  void operator()(char const*, char const*) const { M_decl.clear(); M_types.clear(); M_decl.set_constructor(); }
   FunctionDecl& M_decl;
   std::set<std::string>& M_types;
 };
@@ -121,6 +121,13 @@ struct erase_a {
       }
   std::set<std::string>& M_types;
   std::string& M_identifier;
+};
+ 
+struct returns_function_pointer_a {
+  returns_function_pointer_a(FunctionDecl& decl) : M_decl(decl) { }
+  void operator()(char const* first, char const* last) const
+      { M_decl.function_pointer = std::string(first, last); }
+  FunctionDecl& M_decl;
 };
 
 struct is_template_a {
@@ -252,16 +259,21 @@ public:
         main
 	    =
   // This works because of the following:
-  // 1) If we DO have a return type, then after consuming the type_id
-  //    will look at a possibly qualified function name. That is,
-  //    a namespace name, a class name or an unqualified name. And
-  //    a name never starts with a '(', and won't start with a ':'
-  //    either because g++ never prints a leading "::" for the root
-  //    namespace.
-  //    As a result, the (ch_p('(') ^ ch_p(':')) will fails without
-  //    consuming anything.  The ^ epsilon_p turns that in success
-  //    and we continue with parsing decl_without_return_type as if
-  //    we had done: type_id >> decl_without_return_type
+  // 1) If we DO have a normal return type, then after consuming the
+  //    type_id we look at a (possibly qualified) function name. That
+  //    is, a namespace name, a class name or an unqualified name.
+  //    A name never starts with a '(', nor will start with a ':'
+  //    because g++ never prints a leading "::" for the root namespace.
+  //    As a result, the ((ch_p('(') >> ~ch_p('*')) ^ ch_p(':')) will
+  //    fail without consuming anything.  The ^ epsilon_p turns that
+  //    in success and we continue with parsing decl_without_return_type
+  //    as if we had done: type_id >> decl_without_return_type.
+  //    Not that we make an exception for a '(' that is followed by
+  //    a '*': in that case it can't be a constructor (a parameter list
+  //    doesn't start with a '*') but instead we have a function that
+  //    is returning a function pointer (ie: 'int (*f(void))(float)',
+  //    int (*)(float) is the return type), so in that case we DO have
+  //    a return type.
   //
   // 2) If we DON'T have a return type, then that MUST be a constructor
   //    or a destructor (assuming valid input). And therefore it's form
@@ -270,15 +282,17 @@ public:
   //    will be eaten, while in the case of a destructor, only the
   //    first namespace (or class) will be eaten. As a result, the first
   //    remaining character in that case is either a '(' or ':', the
-  //    (ch_p('(') ^ ch_p(':')) will now succeed, and after inverting
-  //    that result with ^ epsilon_p, the whole expression so far fails.
-  //    The input is restored to the begin state and decl_without_return_type
-  //    is called for the full input.
+  //    ((ch_p('(') >> ~ch_p('*')) ^ ch_p(':')) will now succeed, and
+  //    after inverting that result with ^ epsilon_p, the whole expression
+  //    so far fails. The input is restored to the begin state and
+  //    decl_without_return_type is called for the full input.
 
+	    // Just an identifier means that it's a function with C linkage (extern "C").
 		(
 		    identifier
-		    >> end_p
+		    >> end_p	
 		)						[is_C_function_a(self.M_function_decl)]
+
 	    |   *decl_specifier_no_type				[assign_a(self.M_function_decl.decl_specifier)]
 		>>  (
 			(
@@ -287,7 +301,11 @@ public:
 				    type_id			[assign_a(self.M_function_decl.return_type)]
 				    >>  (   
 					    (   
-						(   ch_p('(')	[is_constructor_a(self.M_function_decl, self.M_types)]
+						(
+						    (
+						         ch_p('(')
+						    >>	 ~ch_p('*')
+						    )		[is_constructor_a(self.M_function_decl, self.M_types)]
 						|   ch_p(':')	[is_destructor_a(self.M_function_decl, self.M_types)]
 						)
 						^ epsilon_p	// Invert result.
@@ -295,14 +313,29 @@ public:
 					)
 				)
 			    // Process the rest of the function (or all of it, when there was no return type).
-			    >>  decl_without_return_type
+			    >>  (
+			            (
+				        ch_p('(')
+				    >>  '*'
+				    >>  decl_without_return_type	// Function returning function pointer.
+				    >>  (
+				            ch_p(')')
+				            >>  '('
+				            >> !parameter_declaration_clause
+				            >> ')'
+				            >> !cv_qualifiers
+				            >> !exception_specification
+					)			[returns_function_pointer_a(self.M_function_decl)]
+				    )
+			        |   decl_without_return_type
+			        )
 			    )
 			    >> !( with_template_parameters	[is_template_a(self.M_function_decl)] )
 			    >> end_p
 			)
 		    // If that failed, there is still hope; this could be a conversion operator,
 		    // which also don't have return types.  First, we have to erase the output written so far.
-		    |   (   eps_p					[clear_output_a(self.M_function_decl)]
+		    |   (   eps_p				[clear_output_a(self.M_function_decl)]
 			&   nothing_p
 			)
 		    // Then try to parse a conversion operator.
@@ -870,7 +903,13 @@ int main(int argc, char* argv[])
   {
     result = decl.return_type;
     result += ' ';
-    std::cout << "RETURN TYPE        : " << decl.return_type << '\n';
+    std::cout << "RETURN TYPE        : " << decl.return_type;
+    if (!decl.function_pointer.empty())
+    {
+      std::cout << " (*" << decl.function_pointer;
+      result += "(* ";
+    }
+    std::cout << '\n';
   }
   for (std::vector<std::string>::const_iterator iter = decl.class_or_namespaces.begin();
        iter != decl.class_or_namespaces.end(); ++iter)
@@ -921,6 +960,8 @@ int main(int argc, char* argv[])
     result += ' ';
     result += decl.exception_specification;
   }
+  if (!decl.function_pointer.empty())
+    result += decl.function_pointer;
   if (input != result)
   {
     std::cout << "\ninput  = \"" << input << "\".\n";

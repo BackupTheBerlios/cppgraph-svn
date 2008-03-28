@@ -40,8 +40,8 @@ void generate_project_graph(int verbose)
   project_graph.generate_graph(ProjectCallerFilter(), ProjectCalleeFilter());
   if (verbose)
     std::cout << "Number of vertices: " << project_graph.number_of_vertices() << std::endl;
-  if (!project_graph.test_acyclic())
-    DoutFatal(dc::fatal, "Project graph is not a-cyclic!");
+//  if (!project_graph.test_acyclic())
+//    DoutFatal(dc::fatal, "Project graph is not a-cyclic!");
   std::ofstream dot_file;
   dot_file.open("projects.dot");
   project_graph.write_to(dot_file);
